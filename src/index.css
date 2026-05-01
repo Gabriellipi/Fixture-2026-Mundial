@@ -53,6 +53,11 @@
     @apply outline-none;
   }
 
+  button:focus-visible,
+  input:focus-visible {
+    @apply ring-2 ring-emerald-400 ring-offset-1 ring-offset-slate-950;
+  }
+
   ::selection {
     @apply bg-emerald-400/30 text-white;
   }

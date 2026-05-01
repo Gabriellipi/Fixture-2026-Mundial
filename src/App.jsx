@@ -42,8 +42,7 @@ import {
   signOutUser,
   subscribeToAuthChanges,
 } from "./services/auth";
-import { getWorldCupFixturesByDate } from "./services/apiSports";
-import { getWorldCupStandings } from "./services/apiSports";
+import { getWorldCupFixturesByDate, getWorldCupStandings } from "./services/apiSports";
 import { loadProfile, updateProfilePreferences, upsertProfile } from "./services/profile";
 import { loadStoredPredictions, persistPrediction } from "./services/predictions";
 import { uploadAvatar } from "./services/storage";
@@ -55,6 +54,9 @@ const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
   .split(",")
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
+
+const TOURNAMENT_START_TS = new Date("2026-06-11T19:00:00Z").getTime();
+const TOURNAMENT_END_TS = new Date("2026-07-19T23:59:00Z").getTime();
 
 function isAdminUser(user) {
   if (!user?.email) {
@@ -764,8 +766,6 @@ function App() {
     [activeLiveData, displayMatches, resolvedFixtureIds]
   );
 
-  const TOURNAMENT_START_TS = new Date("2026-06-11T19:00:00Z").getTime();
-  const TOURNAMENT_END_TS = new Date("2026-07-19T23:59:00Z").getTime();
   const nowTs = effectiveNow.getTime();
   const tournamentIsActive = nowTs >= TOURNAMENT_START_TS && nowTs <= TOURNAMENT_END_TS;
 
@@ -791,7 +791,7 @@ function App() {
   const finishedStartIndex = dashboardMatches.findIndex(
     (m) => m.status === "FINISHED" || m.status === "FT" || m.status === "AET"
   );
-  const dashboardDateLabel = new Date().toLocaleDateString(language, {
+  const dashboardDateLabel = effectiveNow.toLocaleDateString(language, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -1077,6 +1077,8 @@ function App() {
     tournamentIsActive,
     simulationMode,
     displayMatches,
+    groupStandings,
+    groupStandingsStatus,
   ]);
 
   if (!authReady) {
