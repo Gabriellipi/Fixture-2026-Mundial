@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { useAppLocale } from "../context/AppLocaleContext";
 
 async function deleteAccountData() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -16,6 +17,7 @@ async function deleteAccountData() {
 }
 
 function DeleteAccountModal({ user, onClose, onDeleted }) {
+  const { t } = useAppLocale();
   const [step, setStep] = useState("confirm"); // confirm | deleting | done | error
   const [error, setError] = useState(null);
 
@@ -26,7 +28,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
       setStep("done");
       setTimeout(() => onDeleted?.(), 1500);
     } catch (err) {
-      setError(err.message ?? "Error al eliminar la cuenta");
+      setError(err.message ?? t("delete_account_error_generic"));
       setStep("error");
     }
   };
@@ -39,7 +41,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/15">
               <AlertTriangle size={20} className="text-red-400" />
             </div>
-            <h2 className="font-semibold text-white">Eliminar cuenta</h2>
+            <h2 className="font-semibold text-white">{t("delete_account_title")}</h2>
           </div>
           {step !== "deleting" && (
             <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:text-white">
@@ -51,37 +53,37 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
         {step === "confirm" && (
           <>
             <p className="mb-2 text-sm text-slate-300">
-              Esta acción es <strong className="text-white">permanente e irreversible</strong>.
+              <strong className="text-white">{t("delete_account_warning")}</strong>
             </p>
             <ul className="mb-5 list-disc pl-5 text-sm text-slate-400 space-y-1">
-              <li>Tu perfil y nombre</li>
-              <li>Todas tus predicciones</li>
-              <li>Tu posición en el ranking</li>
-              <li>Tu foto de perfil</li>
+              <li>{t("delete_account_item_profile")}</li>
+              <li>{t("delete_account_item_predictions")}</li>
+              <li>{t("delete_account_item_ranking")}</li>
+              <li>{t("delete_account_item_photo")}</li>
             </ul>
             <div className="flex gap-3">
               <button
                 onClick={onClose}
                 className="flex-1 rounded-2xl border border-white/10 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
               >
-                Cancelar
+                {t("delete_account_cancel")}
               </button>
               <button
                 onClick={handleDelete}
                 className="flex-1 rounded-2xl bg-red-500 py-3 text-sm font-semibold text-white transition hover:bg-red-400"
               >
-                Sí, eliminar
+                {t("delete_account_confirm")}
               </button>
             </div>
           </>
         )}
 
         {step === "deleting" && (
-          <p className="py-4 text-center text-sm text-slate-400">Eliminando datos…</p>
+          <p className="py-4 text-center text-sm text-slate-400">{t("delete_account_deleting")}</p>
         )}
 
         {step === "done" && (
-          <p className="py-4 text-center text-sm text-emerald-400">Cuenta eliminada. Hasta pronto.</p>
+          <p className="py-4 text-center text-sm text-emerald-400">{t("delete_account_done")}</p>
         )}
 
         {step === "error" && (
@@ -91,7 +93,7 @@ function DeleteAccountModal({ user, onClose, onDeleted }) {
               onClick={onClose}
               className="w-full rounded-2xl border border-white/10 py-3 text-sm font-semibold text-slate-300 hover:text-white"
             >
-              Cerrar
+              {t("delete_account_close")}
             </button>
           </>
         )}

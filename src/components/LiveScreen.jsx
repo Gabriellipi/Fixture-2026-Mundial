@@ -24,11 +24,12 @@ function getTodayKey(timeZone) {
   }
 }
 
-function getCompetitionLabel(round, name) {
+function getCompetitionLabel(round, name, t) {
   if (round) {
-    return round.replace("Group Stage - ", "Grupo ");
+    const grpMatch = round.match(/Group Stage - (.+)/);
+    if (grpMatch) return t("live_group_label", { id: grpMatch[1] });
+    return round;
   }
-
   return name ?? "Mundial 2026";
 }
 
@@ -64,20 +65,20 @@ function mapStatistics(stats = []) {
   };
 }
 
-function normalizeFixture(fixture) {
+function normalizeFixture(fixture, t) {
   return {
     id: String(fixture.fixture?.id ?? fixture.id),
     fixtureId: fixture.fixture?.id ?? fixture.id ?? null,
-    competition: getCompetitionLabel(fixture.league?.round, fixture.league?.name),
+    competition: getCompetitionLabel(fixture.league?.round, fixture.league?.name, t),
     kickoff: fixture.fixture?.date ? new Date(fixture.fixture.date) : null,
     status: fixture.fixture?.status?.short ?? "NS",
     minute: fixture.fixture?.status?.elapsed ?? null,
     homeTeam: {
-      name: fixture.teams?.home?.name ?? "Local",
+      name: fixture.teams?.home?.name ?? t("live_fallback_home"),
       crest: fixture.teams?.home?.logo ?? "",
     },
     awayTeam: {
-      name: fixture.teams?.away?.name ?? "Visitante",
+      name: fixture.teams?.away?.name ?? t("live_fallback_away"),
       crest: fixture.teams?.away?.logo ?? "",
     },
     score: {
@@ -88,7 +89,7 @@ function normalizeFixture(fixture) {
   };
 }
 
-function buildOfficialTodayMatches(timeZone) {
+function buildOfficialTodayMatches(timeZone, t) {
   const todayKey = getTodayKey(timeZone);
 
   return upcomingMatches
@@ -114,16 +115,16 @@ function buildOfficialTodayMatches(timeZone) {
     .map((match) => ({
       id: String(match.id),
       fixtureId: null,
-      competition: `Grupo ${match.groupId}`,
+      competition: t("live_group_label", { id: match.groupId }),
       kickoff: match.kickoffUtc ? new Date(match.kickoffUtc) : null,
       status: "NS",
       minute: null,
       homeTeam: {
-        name: match.homeTeam?.aliases?.[0] ?? match.homeTeam?.name ?? "Local",
+        name: match.homeTeam?.aliases?.[0] ?? match.homeTeam?.name ?? t("live_fallback_home"),
         crest: match.homeTeam?.flag ?? "",
       },
       awayTeam: {
-        name: match.awayTeam?.aliases?.[0] ?? match.awayTeam?.name ?? "Visitante",
+        name: match.awayTeam?.aliases?.[0] ?? match.awayTeam?.name ?? t("live_fallback_away"),
         crest: match.awayTeam?.flag ?? "",
       },
       score: {
@@ -138,11 +139,11 @@ function buildOfficialTodayMatches(timeZone) {
     }));
 }
 
-function getEventTone(type) {
+function getEventTone(type, t) {
   if (type === "yellow-card") {
     return {
       icon: SquareStack,
-      label: "Amarilla",
+      label: t("live_event_yellow_card"),
       iconClass: "text-yellow-300",
       badgeClass: "bg-yellow-500/12 text-yellow-100 border border-yellow-400/20",
     };
@@ -151,7 +152,7 @@ function getEventTone(type) {
   if (type === "red-card") {
     return {
       icon: SquareStack,
-      label: "Roja",
+      label: t("live_event_red_card"),
       iconClass: "text-red-300",
       badgeClass: "bg-red-500/12 text-red-100 border border-red-400/20",
     };
@@ -160,7 +161,7 @@ function getEventTone(type) {
   if (type === "substitution") {
     return {
       icon: ArrowRightLeft,
-      label: "Cambio",
+      label: t("live_event_substitution"),
       iconClass: "text-sky-300",
       badgeClass: "bg-sky-500/12 text-sky-100 border border-sky-400/20",
     };
@@ -169,7 +170,7 @@ function getEventTone(type) {
   if (type === "penalty") {
     return {
       icon: ShieldAlert,
-      label: "Penal",
+      label: t("live_event_penalty"),
       iconClass: "text-fuchsia-300",
       badgeClass: "bg-fuchsia-500/12 text-fuchsia-100 border border-fuchsia-400/20",
     };
@@ -178,7 +179,7 @@ function getEventTone(type) {
   if (type === "var") {
     return {
       icon: TimerReset,
-      label: "VAR",
+      label: t("live_event_var"),
       iconClass: "text-amber-200",
       badgeClass: "bg-amber-500/12 text-amber-100 border border-amber-400/20",
     };
@@ -186,7 +187,7 @@ function getEventTone(type) {
 
   return {
     icon: Goal,
-    label: "Gol",
+    label: t("live_event_goal"),
     iconClass: "text-emerald-300",
     badgeClass: "bg-emerald-500/12 text-emerald-200 border border-emerald-400/20",
   };
@@ -235,21 +236,21 @@ function StatBar({ label, home, away, suffix = "" }) {
   );
 }
 
-function InlineStats({ stats }) {
+function InlineStats({ stats, t }) {
   return (
     <div className="space-y-3 border-t border-white/8 px-4 py-4">
-      <StatBar label="Posesión" home={stats.possession.home} away={stats.possession.away} suffix="%" />
-      <StatBar label="Tiros" home={stats.shots.home} away={stats.shots.away} />
-      <StatBar label="Remates" home={stats.totalShots.home} away={stats.totalShots.away} />
+      <StatBar label={t("live_stat_possession")} home={stats.possession.home} away={stats.possession.away} suffix="%" />
+      <StatBar label={t("live_stat_shots")} home={stats.shots.home} away={stats.shots.away} />
+      <StatBar label={t("live_stat_total_shots")} home={stats.totalShots.home} away={stats.totalShots.away} />
     </div>
   );
 }
 
-function IncidentList({ events, homeTeamName, awayTeamName }) {
+function IncidentList({ events, homeTeamName, awayTeamName, t }) {
   if (!events?.length) {
     return (
       <div className="border-t border-white/8 px-4 py-4">
-        <p className="text-sm text-slate-500">Todavía no hay incidencias cargadas.</p>
+        <p className="text-sm text-slate-500">{t("live_no_incidents")}</p>
       </div>
     );
   }
@@ -260,7 +261,7 @@ function IncidentList({ events, homeTeamName, awayTeamName }) {
         .slice()
         .sort((a, b) => (b.minute ?? 0) - (a.minute ?? 0))
         .map((event) => {
-          const tone = getEventTone(event.type);
+          const tone = getEventTone(event.type, t);
           const Icon = tone.icon;
           const teamName = event.team === "home" ? homeTeamName : awayTeamName;
 
@@ -289,10 +290,10 @@ function IncidentList({ events, homeTeamName, awayTeamName }) {
                   {event.detail ? ` · ${event.detail}` : ""}
                 </p>
                 {event.assist ? (
-                  <p className="mt-1 text-[11px] text-slate-400">Asistencia: <span className="text-slate-200">{event.assist}</span></p>
+                  <p className="mt-1 text-[11px] text-slate-400">{t("live_assist")}: <span className="text-slate-200">{event.assist}</span></p>
                 ) : null}
                 {event.playerOut ? (
-                  <p className="mt-1 text-[11px] text-slate-400">Sale: <span className="text-slate-200">{event.playerOut}</span></p>
+                  <p className="mt-1 text-[11px] text-slate-400">{t("live_player_out")}: <span className="text-slate-200">{event.playerOut}</span></p>
                 ) : null}
               </div>
             </div>
@@ -358,6 +359,7 @@ function Countdown({ kickoff, language, timeZone }) {
 
 function LiveMatchRow({ match }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useAppLocale();
   const { matchData } = useMatchStatus(match.fixtureId, match);
   const resolvedMatch = matchData
     ? {
@@ -410,11 +412,12 @@ function LiveMatchRow({ match }) {
 
       {expanded ? (
         <>
-          <InlineStats stats={resolvedMatch.stats} />
+          <InlineStats stats={resolvedMatch.stats} t={t} />
           <IncidentList
             events={resolvedMatch.events ?? []}
             homeTeamName={resolvedMatch.homeTeam.name}
             awayTeamName={resolvedMatch.awayTeam.name}
+            t={t}
           />
         </>
       ) : null}
@@ -445,7 +448,7 @@ function LiveScreen({ isActive = false }) {
   const { t, language, timeZone } = useAppLocale();
   const [activeSubTab, setActiveSubTab] = useState("live");
   const [liveMatches, setLiveMatches] = useState([]);
-  const [todayMatches, setTodayMatches] = useState(() => buildOfficialTodayMatches(timeZone));
+  const [todayMatches, setTodayMatches] = useState(() => buildOfficialTodayMatches(timeZone, t));
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -461,7 +464,7 @@ function LiveScreen({ isActive = false }) {
 
       try {
         const today = getTodayKey(timeZone);
-        const officialTodayMatches = buildOfficialTodayMatches(timeZone);
+        const officialTodayMatches = buildOfficialTodayMatches(timeZone, t);
         const [liveResponse, todayResponse] = API_KEY_PRESENT
           ? await Promise.all([
               getLiveWorldCupFixtures({ season: 2026 }),
@@ -475,11 +478,11 @@ function LiveScreen({ isActive = false }) {
 
         const normalizedLive = (liveResponse.response ?? [])
           .filter((fixture) => LIVE_STATUSES.has(fixture.fixture?.status?.short ?? ""))
-          .map(normalizeFixture);
+          .map((f) => normalizeFixture(f, t));
 
         const normalizedToday = (todayResponse.response ?? [])
           .filter((fixture) => UPCOMING_STATUSES.has(fixture.fixture?.status?.short ?? ""))
-          .map(normalizeFixture)
+          .map((f) => normalizeFixture(f, t))
           .sort((a, b) => (a.kickoff?.getTime() ?? Infinity) - (b.kickoff?.getTime() ?? Infinity));
 
         setLiveMatches(normalizedLive);
@@ -488,7 +491,7 @@ function LiveScreen({ isActive = false }) {
       } catch {
         if (!cancelled) {
           setLiveMatches([]);
-          setTodayMatches(buildOfficialTodayMatches(timeZone));
+          setTodayMatches(buildOfficialTodayMatches(timeZone, t));
           setLastUpdated(new Date());
         }
       } finally {

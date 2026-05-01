@@ -1,6 +1,9 @@
 import { Crown, TrendingUp } from "lucide-react";
+import { useAppLocale } from "../context/AppLocaleContext";
 
 function LeaderboardCard({ players }) {
+  const { t } = useAppLocale();
+
   return (
     <div className="panel overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
@@ -9,14 +12,14 @@ function LeaderboardCard({ players }) {
             <Crown size={20} />
           </div>
           <div>
-            <p className="font-display text-lg font-bold text-white">Top 3 global</p>
-            <p className="text-sm text-slate-400">Usuarios con mejor rendimiento</p>
+            <p className="font-display text-lg font-bold text-white">{t("leaderboard_title")}</p>
+            <p className="text-sm text-slate-400">{t("leaderboard_subtitle")}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 rounded-full bg-neon-400/10 px-3 py-2 text-xs font-bold text-neon-400">
           <TrendingUp size={14} />
-          En vivo
+          {t("leaderboard_live")}
         </div>
       </div>
 
@@ -33,7 +36,7 @@ function LeaderboardCard({ players }) {
               <div>
                 <p className="font-semibold text-white">{player.name}</p>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                  Racha {player.streak}
+                  {t("leaderboard_streak", { count: player.streak })}
                 </p>
               </div>
             </div>

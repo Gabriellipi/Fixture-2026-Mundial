@@ -314,8 +314,8 @@ function App() {
           setProfile(null);
           setAuthMessage(
             error.message?.includes("public.profiles")
-              ? "Estamos preparando tu perfil. Probá de nuevo en unos minutos."
-              : error.message ?? "No se pudo crear el perfil.",
+              ? t("auth_profile_preparing")
+              : error.message ?? t("auth_profile_error"),
           );
         }
       }
@@ -361,8 +361,8 @@ function App() {
           setProfile(null);
           setAuthMessage(
             error.message?.includes("public.profiles")
-              ? "Estamos preparando tu perfil. Probá de nuevo en unos minutos."
-              : error.message ?? "No se pudo crear el perfil.",
+              ? t("auth_profile_preparing")
+              : error.message ?? t("auth_profile_error"),
           );
         }
       } else {
@@ -414,7 +414,7 @@ function App() {
         return;
       }
 
-      setAuthMessage("Te enviamos un enlace de acceso a tu email.");
+      setAuthMessage(t("auth_email_sent"));
     } finally {
       setLoadingProvider(null);
     }
