@@ -417,16 +417,39 @@ function MyPredictionsScreen({
     [analytics.accuracy, analytics.exact, analytics.points, t],
   );
 
+  const APP_URL = "https://fixture-2026-mundial.vercel.app";
+
   const handleShare = async (mode) => {
     try {
       if (mode === "native" && shareCapabilities.native) {
-        await navigator.share({ text: shareText });
+        // Try to share with the app icon so it appears alongside the message
+        try {
+          const response = await fetch("/icons/icon-512x512.png");
+          const blob = await response.blob();
+          const file = new File([blob], "fixture-digital-2026.png", { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], text: shareText, url: APP_URL });
+            return;
+          }
+        } catch {
+          // File sharing not supported — fall back to text + URL
+        }
+        await navigator.share({ text: shareText, url: APP_URL });
       } else if (mode === "whatsapp") {
+        // Including the URL in the text triggers WhatsApp's OG preview (shows the app logo)
         window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
       } else if (mode === "telegram") {
-        window.open(`https://t.me/share/url?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+        window.open(
+          `https://t.me/share/url?url=${encodeURIComponent(APP_URL)}&text=${encodeURIComponent(shareText)}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
       } else if (mode === "x") {
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(APP_URL)}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
       } else if (shareCapabilities.clipboard) {
         await navigator.clipboard.writeText(shareText);
         setShareState("copied");
@@ -529,6 +552,19 @@ function MyPredictionsScreen({
                 <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{t("my_picks_share_preview")}</p>
               </div>
               <div className="px-4 py-4">
+                {/* App logo header — mirrors what recipients see when the link unfurls */}
+                <div className="mb-4 flex items-center gap-3">
+                  <img
+                    src="/icons/icon-512x512.png"
+                    alt="Fixture Digital 2026"
+                    className="h-10 w-10 rounded-xl object-cover shadow-md"
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-white">Fixture Digital 2026</p>
+                    <p className="text-[10px] text-slate-400">fixture-2026-mundial.vercel.app</p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-center">
                     <p className="text-[9px] uppercase tracking-[0.18em] text-slate-500">{t("my_picks_points")}</p>
@@ -544,7 +580,7 @@ function MyPredictionsScreen({
                   </div>
                 </div>
 
-                <p className="mt-4 text-sm leading-6 text-white">{shareText}</p>
+                <p className="mt-4 whitespace-pre-line text-sm leading-6 text-white">{shareText}</p>
               </div>
             </div>
 
