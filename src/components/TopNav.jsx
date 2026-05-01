@@ -333,7 +333,7 @@ function TopNav({ activeTab, onChange, onSignOut, onSearchTeam, groups = [], use
                     className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                   >
                     <span className="w-[15px] text-center text-slate-500 text-xs">🔒</span>
-                    Privacidad
+                    {t("nav_privacy")}
                   </button>
                   <button
                     type="button"
@@ -341,7 +341,7 @@ function TopNav({ activeTab, onChange, onSignOut, onSearchTeam, groups = [], use
                     className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                   >
                     <span className="w-[15px] text-center text-slate-500 text-xs">📄</span>
-                    Términos
+                    {t("nav_terms")}
                   </button>
                   <button
                     type="button"
@@ -349,7 +349,7 @@ function TopNav({ activeTab, onChange, onSignOut, onSearchTeam, groups = [], use
                     className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
                   >
                     <span className="w-[15px] text-center text-xs">🗑</span>
-                    Eliminar cuenta
+                    {t("delete_account_title")}
                   </button>
                   <div className="my-1 h-px bg-white/5" />
                   <button

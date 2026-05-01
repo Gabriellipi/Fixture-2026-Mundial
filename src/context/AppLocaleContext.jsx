@@ -1,5 +1,5 @@
 import { getMatchKickoffDate } from "../utils/dateTime";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { translations } from "../i18n/translations";
 
 const AppLocaleContext = createContext(null);
@@ -131,6 +131,31 @@ export function AppLocaleProvider({ children }) {
     }
   }, [timeZone]);
 
+  // Stable callbacks — these never change reference between renders,
+  // so useEffect dependencies that include them won't re-fire just
+  // because the active language changed (which was causing language
+  // selections to be immediately reverted by the profile-sync effect).
+  const stableSetLanguage = useCallback((nextLanguage) => {
+    if (nextLanguage && SUPPORTED_LANGUAGES.includes(nextLanguage)) {
+      setLanguage(nextLanguage);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stableSetTimeZone = useCallback((nextTimeZone) => {
+    if (nextTimeZone) {
+      setTimeZone(nextTimeZone);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stableSetPreferences = useCallback(({ language: nextLanguage, timeZone: nextTimeZone }) => {
+    if (nextLanguage && SUPPORTED_LANGUAGES.includes(nextLanguage)) {
+      setLanguage(nextLanguage);
+    }
+    if (nextTimeZone) {
+      setTimeZone(nextTimeZone);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const value = useMemo(() => {
     const dictionary = translations[language] ?? translations.es;
     const t = (key, values) => {
@@ -152,27 +177,12 @@ export function AppLocaleProvider({ children }) {
         value: code,
         label: translations[code]?.languageName ?? code,
       })),
-      setLanguage: (nextLanguage) => {
-        if (nextLanguage && SUPPORTED_LANGUAGES.includes(nextLanguage)) {
-          setLanguage(nextLanguage);
-        }
-      },
-      setTimeZone: (nextTimeZone) => {
-        if (nextTimeZone) {
-          setTimeZone(nextTimeZone);
-        }
-      },
-      setPreferences: ({ language: nextLanguage, timeZone: nextTimeZone }) => {
-        if (nextLanguage) {
-          setLanguage(nextLanguage);
-        }
-        if (nextTimeZone) {
-          setTimeZone(nextTimeZone);
-        }
-      },
+      setLanguage: stableSetLanguage,
+      setTimeZone: stableSetTimeZone,
+      setPreferences: stableSetPreferences,
       t,
     };
-  }, [language, timeZone]);
+  }, [language, timeZone, stableSetLanguage, stableSetTimeZone, stableSetPreferences]);
 
   return <AppLocaleContext.Provider value={value}>{children}</AppLocaleContext.Provider>;
 }
