@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "בית", "groups": "בתים", "matches": "משחקים", "teams": "נבחרות", "hosts": "מארחות", "knockout": "נוקאאוט", "ranking": "דירוג" },
+  "title": { "worldcup": "Fixture Digital 2026" },
+  "group": { "label": "בית {id}" }
+}

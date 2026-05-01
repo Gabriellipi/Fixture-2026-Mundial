@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "홈", "groups": "조별", "matches": "경기", "teams": "팀", "hosts": "개최지", "knockout": "토너먼트", "ranking": "순위" },
+  "title": { "worldcup": "Fixture Digital 2026" },
+  "group": { "label": "{id}조" }
+}

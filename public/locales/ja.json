@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "ホーム", "groups": "グループ", "matches": "試合", "teams": "チーム", "hosts": "開催地", "knockout": "決勝T", "ranking": "ランキング" },
+  "title": { "worldcup": "Fixture Digital 2026" },
+  "group": { "label": "グループ{id}" }
+}

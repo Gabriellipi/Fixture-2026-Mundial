@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "Home", "groups": "Groups", "matches": "Matches", "teams": "Teams", "hosts": "Hosts", "knockout": "Knockout", "ranking": "Ranking" },
+  "title": { "worldcup": "Digital Fixture 2026" },
+  "group": { "label": "Group {id}" }
+}

@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "Inicio", "groups": "Grupos", "matches": "Partidos", "teams": "Selecciones", "hosts": "Sedes", "knockout": "Cruces", "ranking": "Ranking" },
+  "title": { "worldcup": "Fixture Digital 2026" },
+  "group": { "label": "Grupo {id}" }
+}

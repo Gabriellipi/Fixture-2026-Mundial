@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "Home", "groups": "Gironi", "matches": "Partite", "teams": "Squadre", "hosts": "Sedi", "knockout": "Eliminatorie", "ranking": "Classifica" },
+  "title": { "worldcup": "Fixture Digital 2026" },
+  "group": { "label": "Girone {id}" }
+}

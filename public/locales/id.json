@@ -1,0 +1,5 @@
+{
+  "nav": { "home": "Beranda", "groups": "Grup", "matches": "Pertandingan", "teams": "Tim", "hosts": "Venue", "knockout": "Gugur", "ranking": "Peringkat" },
+  "title": { "worldcup": "Fixture Digital 2026" },
+  "group": { "label": "Grup {id}" }
+}

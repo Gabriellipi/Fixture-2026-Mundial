@@ -1,0 +1,12 @@
+{
+  "name": "fixture-digital-2026-match-center",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
