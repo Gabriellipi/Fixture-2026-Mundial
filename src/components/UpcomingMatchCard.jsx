@@ -454,7 +454,7 @@ function LiveIncidentTimeline({ events = [], homeTeamName, awayTeamName }) {
 
 function CommunityBar({ stats, homeTeamName, awayTeamName }) {
   const { t } = useAppLocale();
-  if (!stats || stats.total < 5) return null;
+  if (!stats || stats.total < 1) return null;
 
   const { home, draw, away, total } = stats;
 
