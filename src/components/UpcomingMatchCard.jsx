@@ -458,11 +458,18 @@ function CommunityBar({ stats, homeTeamName, awayTeamName }) {
 
   const { home, draw, away, total } = stats;
 
-  // ensure segments are visible even when a % is very small
-  const homeW = Math.max(home, home > 0 ? 8 : 0);
-  const drawW = Math.max(draw, draw > 0 ? 8 : 0);
-  const awayW = Math.max(away, away > 0 ? 8 : 0);
+  // Always show all 3 segments. Give each a minimum visual width of 14%
+  // so no color disappears even when its real % is 0. Real % labels
+  // are always shown accurately in the legend below the bar.
+  const MIN = 14;
+  const homeW = Math.max(home, MIN);
+  const drawW = Math.max(draw, MIN);
+  const awayW = Math.max(away, MIN);
   const sum = homeW + drawW + awayW;
+
+  const pHome = (homeW / sum) * 100;
+  const pDraw = (drawW / sum) * 100;
+  const pAway = (awayW / sum) * 100;
 
   return (
     <div className="mt-3 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-3">
@@ -476,41 +483,35 @@ function CommunityBar({ stats, homeTeamName, awayTeamName }) {
         </p>
       </div>
 
-      {/* Segmented bar */}
-      <div className="flex h-8 w-full overflow-hidden rounded-xl gap-px">
-        {home > 0 && (
-          <div
-            className="relative flex items-center justify-center bg-emerald-500/75 transition-all"
-            style={{ width: `${(homeW / sum) * 100}%` }}
-          >
-            {home >= 10 && (
-              <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{home}%</span>
-            )}
-          </div>
-        )}
-        {draw > 0 && (
-          <div
-            className="relative flex items-center justify-center bg-amber-500/65 transition-all"
-            style={{ width: `${(drawW / sum) * 100}%` }}
-          >
-            {draw >= 10 && (
-              <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{draw}%</span>
-            )}
-          </div>
-        )}
-        {away > 0 && (
-          <div
-            className="relative flex items-center justify-center bg-rose-500/75 transition-all"
-            style={{ width: `${(awayW / sum) * 100}%` }}
-          >
-            {away >= 10 && (
-              <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{away}%</span>
-            )}
-          </div>
-        )}
+      {/* Segmented bar — all 3 colours always visible */}
+      <div className="flex h-8 w-full overflow-hidden rounded-xl gap-[2px]">
+        <div
+          className="flex items-center justify-center bg-emerald-500/75 transition-all duration-500"
+          style={{ width: `${pHome}%` }}
+        >
+          {home >= 10 && (
+            <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{home}%</span>
+          )}
+        </div>
+        <div
+          className="flex items-center justify-center bg-amber-500/70 transition-all duration-500"
+          style={{ width: `${pDraw}%` }}
+        >
+          {draw >= 10 && (
+            <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{draw}%</span>
+          )}
+        </div>
+        <div
+          className="flex items-center justify-center bg-rose-500/75 transition-all duration-500"
+          style={{ width: `${pAway}%` }}
+        >
+          {away >= 10 && (
+            <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{away}%</span>
+          )}
+        </div>
       </div>
 
-      {/* Labels row */}
+      {/* Labels row — always show real percentages */}
       <div className="mt-2 flex items-center justify-between gap-1">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="h-2 w-2 shrink-0 rounded-sm bg-emerald-500/75" />
@@ -518,12 +519,12 @@ function CommunityBar({ stats, homeTeamName, awayTeamName }) {
           <span className="truncate text-[9px] text-slate-500">{homeTeamName}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className="h-2 w-2 shrink-0 rounded-sm bg-amber-500/65" />
+          <span className="h-2 w-2 shrink-0 rounded-sm bg-amber-500/70" />
           <span className="text-[10px] font-bold tabular-nums text-amber-300">{draw}%</span>
           <span className="text-[9px] text-slate-500">{t("community_draw")}</span>
         </div>
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="text-[9px] text-slate-500">{awayTeamName}</span>
+          <span className="truncate text-[9px] text-slate-500">{awayTeamName}</span>
           <span className="text-[10px] font-bold tabular-nums text-rose-300">{away}%</span>
           <span className="h-2 w-2 shrink-0 rounded-sm bg-rose-500/75" />
         </div>
