@@ -102,6 +102,7 @@ function PredictionsScreen({
   matches,
   predictions,
   saveStates,
+  communityStats = {},
   onPredictionChange,
   onSaveDraft,
   onReopenPrediction,
@@ -267,6 +268,7 @@ function PredictionsScreen({
                       prediction={predictions[match.id]}
                       saveState={saveStates[match.id]}
                       selectedCountryCode={selectedCountry}
+                      communityStats={communityStats[match.id] ?? null}
                       onPredictionChange={onPredictionChange}
                       onSaveDraft={onSaveDraft}
                       onReopenPrediction={onReopenPrediction}

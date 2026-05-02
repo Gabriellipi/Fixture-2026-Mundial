@@ -44,7 +44,7 @@ import {
 } from "./services/auth";
 import { getWorldCupFixturesByDate, getWorldCupStandings } from "./services/apiSports";
 import { loadProfile, updateProfilePreferences, upsertProfile } from "./services/profile";
-import { loadStoredPredictions, persistPrediction } from "./services/predictions";
+import { loadCommunityStats, loadStoredPredictions, persistPrediction } from "./services/predictions";
 import { uploadAvatar } from "./services/storage";
 import { getPredictionPhase, hasPredictionScore } from "./utils/predictions";
 import { buildFallbackStandings, normalizeApiStandings } from "./utils/standings";
@@ -199,6 +199,7 @@ function App() {
   const [groupStandingsStatus, setGroupStandingsStatus] = useState("fallback");
   const [legalScreen, setLegalScreen] = useState(null); // 'privacy' | 'terms' | null
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [communityStats, setCommunityStats] = useState({});
 
   const ensureProfileRow = async (nextUser, existingProfile = null) => {
     if (!isRealAuthenticatedUser(nextUser)) {
@@ -388,6 +389,18 @@ function App() {
       setPreferences(next);
     }
   }, [profile?.preferred_language, profile?.timezone, setPreferences]);
+
+  // Load community prediction stats once on mount, refresh every 5 min
+  useEffect(() => {
+    let cancelled = false;
+    async function fetch() {
+      const stats = await loadCommunityStats();
+      if (!cancelled) setCommunityStats(stats);
+    }
+    fetch();
+    const interval = setInterval(fetch, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -827,6 +840,7 @@ function App() {
           matches={enrichedMatches}
           predictions={predictions}
           saveStates={saveStates}
+          communityStats={communityStats}
           onPredictionChange={handlePredictionChange}
           onSaveDraft={handleSaveDraft}
           onReopenPrediction={handleReopenPrediction}

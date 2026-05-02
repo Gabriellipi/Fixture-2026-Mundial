@@ -450,6 +450,88 @@ function LiveIncidentTimeline({ events = [], homeTeamName, awayTeamName }) {
   );
 }
 
+// ─── Community predictions bar ────────────────────────────────────────────────
+
+function CommunityBar({ stats, homeTeamName, awayTeamName }) {
+  const { t } = useAppLocale();
+  if (!stats || stats.total < 5) return null;
+
+  const { home, draw, away, total } = stats;
+
+  // ensure segments are visible even when a % is very small
+  const homeW = Math.max(home, home > 0 ? 8 : 0);
+  const drawW = Math.max(draw, draw > 0 ? 8 : 0);
+  const awayW = Math.max(away, away > 0 ? 8 : 0);
+  const sum = homeW + drawW + awayW;
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-3">
+      {/* Header */}
+      <div className="mb-2.5 flex items-center justify-between">
+        <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-500">
+          {t("community_title")}
+        </p>
+        <p className="text-[9px] tabular-nums text-slate-600">
+          {total} {t("community_votes")}
+        </p>
+      </div>
+
+      {/* Segmented bar */}
+      <div className="flex h-8 w-full overflow-hidden rounded-xl gap-px">
+        {home > 0 && (
+          <div
+            className="relative flex items-center justify-center bg-emerald-500/75 transition-all"
+            style={{ width: `${(homeW / sum) * 100}%` }}
+          >
+            {home >= 10 && (
+              <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{home}%</span>
+            )}
+          </div>
+        )}
+        {draw > 0 && (
+          <div
+            className="relative flex items-center justify-center bg-amber-500/65 transition-all"
+            style={{ width: `${(drawW / sum) * 100}%` }}
+          >
+            {draw >= 10 && (
+              <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{draw}%</span>
+            )}
+          </div>
+        )}
+        {away > 0 && (
+          <div
+            className="relative flex items-center justify-center bg-rose-500/75 transition-all"
+            style={{ width: `${(awayW / sum) * 100}%` }}
+          >
+            {away >= 10 && (
+              <span className="text-[11px] font-extrabold text-white drop-shadow-sm">{away}%</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Labels row */}
+      <div className="mt-2 flex items-center justify-between gap-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="h-2 w-2 shrink-0 rounded-sm bg-emerald-500/75" />
+          <span className="text-[10px] font-bold tabular-nums text-emerald-300">{home}%</span>
+          <span className="truncate text-[9px] text-slate-500">{homeTeamName}</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="h-2 w-2 shrink-0 rounded-sm bg-amber-500/65" />
+          <span className="text-[10px] font-bold tabular-nums text-amber-300">{draw}%</span>
+          <span className="text-[9px] text-slate-500">{t("community_draw")}</span>
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="text-[9px] text-slate-500">{awayTeamName}</span>
+          <span className="text-[10px] font-bold tabular-nums text-rose-300">{away}%</span>
+          <span className="h-2 w-2 shrink-0 rounded-sm bg-rose-500/75" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LiveStats({ stats }) {
   const { t } = useAppLocale();
   if (!stats) return null;
@@ -538,6 +620,7 @@ function UpcomingMatchCard({
   prediction,
   saveState,
   selectedCountryCode,
+  communityStats = null,
   liveData = null,
   onPredictionChange,
   onSaveDraft,
@@ -751,6 +834,12 @@ function UpcomingMatchCard({
         ))}
         <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{audienceRegionName}</span>
       </div>
+
+      <CommunityBar
+        stats={communityStats}
+        homeTeamName={homeTeamName}
+        awayTeamName={awayTeamName}
+      />
 
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-t border-white/5 pt-4">
         <div className="flex items-center gap-2">

@@ -133,3 +133,55 @@ export async function persistPrediction(matchId, prediction, action = "draft") {
 
   return { mode: "supabase" };
 }
+
+/**
+ * Aggregate all community predictions into sign distributions per match.
+ * Returns { [matchId]: { home: number, draw: number, away: number, total: number } }
+ * where home/draw/away are percentages (0-100).
+ */
+export async function loadCommunityStats() {
+  if (!hasSupabaseEnv || !supabase) return {};
+
+  try {
+    const { data, error } = await supabase
+      .from("predictions")
+      .select("fixture_id, predicted_home_score, predicted_away_score")
+      .not("predicted_home_score", "is", null)
+      .not("predicted_away_score", "is", null);
+
+    if (error) {
+      console.warn("[community] stats fetch failed:", error.message);
+      return {};
+    }
+
+    // Aggregate counts per fixture
+    const agg = {};
+    for (const row of data) {
+      const id = row.fixture_id;
+      if (!agg[id]) agg[id] = { home: 0, draw: 0, away: 0 };
+      const h = Number(row.predicted_home_score);
+      const a = Number(row.predicted_away_score);
+      if (h > a) agg[id].home++;
+      else if (h === a) agg[id].draw++;
+      else agg[id].away++;
+    }
+
+    // Convert to percentages
+    const result = {};
+    for (const [id, counts] of Object.entries(agg)) {
+      const total = counts.home + counts.draw + counts.away;
+      if (total === 0) continue;
+      result[Number(id)] = {
+        home: Math.round((counts.home / total) * 100),
+        draw: Math.round((counts.draw / total) * 100),
+        away: 100 - Math.round((counts.home / total) * 100) - Math.round((counts.draw / total) * 100),
+        total,
+      };
+    }
+
+    return result;
+  } catch (err) {
+    console.warn("[community] unexpected error:", err);
+    return {};
+  }
+}
