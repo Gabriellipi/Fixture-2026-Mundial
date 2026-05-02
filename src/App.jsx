@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { detectPreferredLanguage, detectTimeZone, useAppLocale } from "./context/AppLocaleContext";
@@ -201,6 +201,10 @@ function App() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [communityStats, setCommunityStats] = useState({});
 
+  // Always-fresh ref so auto-save callbacks never close over stale predictions
+  const predictionsRef = useRef(predictions);
+  useEffect(() => { predictionsRef.current = predictions; });
+
   const ensureProfileRow = async (nextUser, existingProfile = null) => {
     if (!isRealAuthenticatedUser(nextUser)) {
       return existingProfile;
@@ -389,6 +393,39 @@ function App() {
       setPreferences(next);
     }
   }, [profile?.preferred_language, profile?.timezone, setPreferences]);
+
+  // Auto-save drafts: whenever a match enters "pending" state (user typed a score),
+  // wait 1.5 s of inactivity then save as draft automatically.
+  // predictionsRef ensures we always read the latest scores, not a stale closure.
+  useEffect(() => {
+    const pending = Object.entries(saveStates).filter(([, s]) => s === "pending");
+    if (pending.length === 0) return;
+
+    const timer = setTimeout(() => {
+      pending.forEach(([id]) => {
+        const matchId = Number(id);
+        const prediction = predictionsRef.current[matchId];
+        const match = upcomingMatches.find((m) => m.id === matchId);
+        if (!match || !prediction || !hasPredictionScore(prediction)) return;
+        const phase = getPredictionPhase(match, prediction);
+        if (phase === "submitted" || phase === "locked") return;
+
+        const nextPrediction = { ...prediction, status: "draft" };
+        setSaveStates((c) => ({ ...c, [matchId]: "saving" }));
+        persistPrediction(matchId, nextPrediction, "draft")
+          .then((result) => {
+            setStorageMode(result.mode);
+            setSaveStates((c) => ({ ...c, [matchId]: "saved" }));
+          })
+          .catch((err) => {
+            console.error("[auto-save] failed for match", matchId, err);
+            setSaveStates((c) => ({ ...c, [matchId]: "error" }));
+          });
+      });
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [saveStates]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load community prediction stats once on mount, refresh every 5 min
   useEffect(() => {

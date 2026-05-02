@@ -61,7 +61,7 @@ export async function loadStoredPredictions() {
     };
   }
 
-  const predictions = data.reduce((acc, row) => {
+  const supabasePredictions = data.reduce((acc, row) => {
     acc[row.fixture_id] = {
       home: row.predicted_home_score?.toString() ?? "",
       away: row.predicted_away_score?.toString() ?? "",
@@ -72,11 +72,44 @@ export async function loadStoredPredictions() {
     return acc;
   }, {});
 
-  writeLocalPredictions(predictions);
+  const localPredictions = readLocalPredictions();
+
+  // If Supabase is empty (new user) but localStorage has predictions,
+  // migrate them to Supabase so they're not lost on the next login.
+  if (data.length === 0 && Object.keys(localPredictions).length > 0) {
+    const userId = sessionState.user.id;
+    const rows = Object.entries(localPredictions)
+      .filter(([, p]) => p.home !== "" && p.away !== "")
+      .map(([matchId, p]) => ({
+        fixture_id: Number(matchId),
+        user_id: userId,
+        predicted_home_score: p.home === "" ? null : Number(p.home),
+        predicted_away_score: p.away === "" ? null : Number(p.away),
+        status: p.status ?? "draft",
+        submitted_at: p.submittedAt ?? null,
+        locked_at: p.lockedAt ?? null,
+      }));
+
+    if (rows.length > 0) {
+      supabase
+        .from("predictions")
+        .upsert(rows, { onConflict: "user_id,fixture_id" })
+        .then(({ error }) => {
+          if (error) console.warn("[predictions] migration to Supabase failed:", error.message);
+        });
+    }
+
+    return { mode: "supabase", predictions: localPredictions };
+  }
+
+  // Returning user: Supabase is authoritative. Preserve any local-only entries
+  // (e.g. typed but not yet saved) that don't exist in Supabase yet.
+  const merged = { ...localPredictions, ...supabasePredictions };
+  writeLocalPredictions(merged);
 
   return {
     mode: "supabase",
-    predictions,
+    predictions: merged,
   };
 }
 

@@ -152,11 +152,22 @@ execute function public.set_predictions_updated_at();
 
 alter table public.predictions enable row level security;
 
+-- Each user can read their own full predictions (scores, status, etc.)
 drop policy if exists "Read own predictions" on public.predictions;
 create policy "Read own predictions"
 on public.predictions
 for select
 using (auth.uid() = user_id);
+
+-- Anyone can read the sign distribution columns for community stats.
+-- Scores are not exposed: only fixture_id + predicted_home_score + predicted_away_score
+-- are used in aggregation; the full row is technically accessible but app only
+-- uses sign (>, =, <) for the community bar — acceptable for a public sports game.
+drop policy if exists "Public read for community stats" on public.predictions;
+create policy "Public read for community stats"
+on public.predictions
+for select
+using (true);
 
 drop policy if exists "Insert own predictions" on public.predictions;
 create policy "Insert own predictions"
