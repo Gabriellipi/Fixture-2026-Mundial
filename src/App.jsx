@@ -915,17 +915,20 @@ function App() {
             </div>
 
             <div className="mt-6 grid grid-cols-3 gap-3">
-              <div className="panel-soft px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t("stat_matches")}</p>
-                <p className="mt-1 text-lg font-extrabold text-white">{tournamentMeta.groupStageMatches}</p>
+              <div className="panel-soft px-3 py-3 sm:px-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{t("stat_matches")}</p>
+                <p className="mt-1.5 text-2xl font-extrabold text-white">{tournamentMeta.groupStageMatches}</p>
               </div>
-              <div className="panel-soft px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t("stat_teams")}</p>
-                <p className="mt-1 text-lg font-extrabold text-white">{tournamentMeta.teams}</p>
+              <div className="panel-soft px-3 py-3 sm:px-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{t("stat_teams")}</p>
+                <p className="mt-1.5 text-2xl font-extrabold text-white">{tournamentMeta.teams}</p>
               </div>
-              <div className="panel-soft px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t("stat_dates")}</p>
-                <p className="mt-1 text-lg font-extrabold text-neon-400">{tournamentMeta.dates}</p>
+              <div className="panel-soft px-3 py-3 sm:px-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{t("stat_dates")}</p>
+                <p className="mt-1.5 text-sm font-extrabold leading-snug text-neon-400">
+                  {tournamentMeta.dates.split(" - ")[0]}
+                  <span className="block">{tournamentMeta.dates.split(" - ")[1]}</span>
+                </p>
               </div>
             </div>
 

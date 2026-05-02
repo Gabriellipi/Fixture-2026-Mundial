@@ -90,13 +90,13 @@ function SummaryCard({ label, value, tone = "default", icon: Icon }) {
 
   return (
     <div className="panel-soft px-4 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
           <p className={`mt-2 text-2xl font-extrabold ${toneClass}`}>{value}</p>
         </div>
-        <div className="rounded-2xl bg-white/5 p-3 text-slate-300">
-          <Icon size={18} />
+        <div className="shrink-0 rounded-2xl bg-white/5 p-2.5 text-slate-300">
+          <Icon size={17} />
         </div>
       </div>
     </div>

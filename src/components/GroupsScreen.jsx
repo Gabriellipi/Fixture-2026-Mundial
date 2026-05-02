@@ -125,10 +125,10 @@ function GroupTable({ group, favoriteTeam, isFocused = false, focusedTeamCode = 
               >
                 <td className="h-16 py-3 pl-3 align-middle">
                   <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-extrabold ${
+                    className={`flex h-6 w-6 items-center justify-center rounded-lg text-[11px] font-extrabold ${
                       team.code === favoriteTeam || team.name === favoriteTeam || team.code === focusedTeamCode
                         ? "bg-gold-300 text-slate-950"
-                        : "bg-white/10 text-white"
+                        : "border border-white/15 bg-white/[0.06] text-slate-300"
                     }`}
                   >
                     {team.rank || index + 1}
