@@ -1,4 +1,4 @@
-import { Globe, Mail } from "lucide-react";
+import { Globe, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { useAppLocale } from "../context/AppLocaleContext";
 import BrandLogo from "./BrandLogo";
@@ -55,6 +55,7 @@ function AuthScreen({
 }) {
   const { availableLanguages, language, setLanguage, t } = useAppLocale();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const copy = {
     eyebrow: language === "he" ? "World Cup Fixture 2026" : language === "en" ? "World Cup Fixture 2026" : "Fixture Mundial 2026",
@@ -69,7 +70,7 @@ function AuthScreen({
   const handleEmailSubmit = async (event) => {
     event.preventDefault();
     if (!email) return;
-    await onEmailSignIn(email);
+    await onEmailSignIn(email, password || undefined);
   };
 
   return (
@@ -187,6 +188,17 @@ function AuthScreen({
                     />
                   </label>
 
+                  <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5">
+                    <Lock size={18} className="text-emerald-400" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder={t("passwordPlaceholder") || "Contraseña (opcional)"}
+                      className="w-full bg-transparent text-sm text-white placeholder:text-slate-500"
+                    />
+                  </label>
+
                   <button
                     type="submit"
                     disabled={!!loadingProvider}
@@ -197,7 +209,7 @@ function AuthScreen({
                 </form>
 
                 <p className="pt-1 text-center text-xs text-slate-400">
-                  {copy.hint}
+                  {password ? null : copy.hint}
                 </p>
 
                 {authMessage ? (

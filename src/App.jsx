@@ -37,6 +37,7 @@ import {
   isAnonymousUser,
   isRealAuthenticatedUser,
   signInWithEmailOtp,
+  signInWithPassword,
   signInWithFacebook,
   signInWithGoogle,
   signOutUser,
@@ -382,17 +383,14 @@ function App() {
   }, [language, timeZone]);
 
   useEffect(() => {
-    const next = {};
-    if (profile?.preferred_language) {
-      next.language = profile.preferred_language;
-    }
+    // Timezone always syncs from profile so match times show in user's saved region.
+    // Language is intentionally NOT synced here: the user's explicit localStorage choice
+    // (set via the language picker or profile save) must survive a page reload.
+    // Syncing language from the profile would overwrite that choice on every session.
     if (profile?.timezone) {
-      next.timeZone = profile.timezone;
+      setPreferences({ timeZone: profile.timezone });
     }
-    if (next.language || next.timeZone) {
-      setPreferences(next);
-    }
-  }, [profile?.preferred_language, profile?.timezone, setPreferences]);
+  }, [profile?.timezone, setPreferences]);
 
   // Auto-save drafts: whenever a match enters "pending" state (user typed a score),
   // wait 1.5 s of inactivity then save as draft automatically.
@@ -453,12 +451,18 @@ function App() {
     }
   };
 
-  const handleEmailSignIn = async (email) => {
+  const handleEmailSignIn = async (email, password) => {
     try {
       setLoadingProvider("email");
       setAuthMessage("");
-      const { error } = await signInWithEmailOtp(email);
 
+      if (password) {
+        const { error } = await signInWithPassword(email, password);
+        if (error) setAuthMessage(error.message);
+        return;
+      }
+
+      const { error } = await signInWithEmailOtp(email);
       if (error) {
         setAuthMessage(error.message);
         return;
