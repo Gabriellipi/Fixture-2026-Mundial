@@ -423,20 +423,20 @@ function App() {
   }, [language, timeZone]);
 
   useEffect(() => {
-    // Timezone always syncs from profile so match times show in user's saved region.
-    // Language is synced from the profile only if the user has no explicit choice in localStorage.
-    // This allows a new/reloaded session without local choice to use their profile language,
-    // while preventing the profile from overwriting an explicit local selection.
-    if (profile?.timezone) {
-      setPreferences({ timeZone: profile.timezone });
-    }
+    // Always use the browser's real timezone — the user may have moved since the profile was saved.
+    // The browser Intl API is the only reliable source of truth for "where is this user right now."
+    // We update the profile in the background so it stays in sync for the next session.
+    const browserTz = detectTimeZone();
+    setPreferences({ timeZone: browserTz });
+
+    // Language syncs from profile only if the user has no explicit local choice.
     if (profile?.preferred_language) {
       const localLang = localStorage.getItem("preferredLanguage");
       if (!localLang) {
         setPreferences({ language: profile.preferred_language });
       }
     }
-  }, [profile?.timezone, profile?.preferred_language, setPreferences]);
+  }, [profile?.preferred_language, setPreferences]);
 
   // Auto-save drafts: whenever a match enters "pending" state (user typed a score),
   // wait 1.5 s of inactivity then save as draft automatically.
@@ -1069,7 +1069,7 @@ function App() {
           saveState={profileSaveState}
           errorMessage={profileError}
           preferredLanguage={profile?.preferred_language ?? language}
-          timeZone={profile?.timezone ?? timeZone}
+          timeZone={timeZone}
           simulationMode={isAdminUser(authUser) || import.meta.env.DEV ? simulationMode : undefined}
           onSimulationModeChange={isAdminUser(authUser) || import.meta.env.DEV ? setSimulationMode : undefined}
         />
