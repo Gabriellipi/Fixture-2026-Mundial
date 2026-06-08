@@ -51,6 +51,7 @@ export async function loadStoredPredictions() {
   const { data, error } = await supabase
     .from("predictions")
     .select("fixture_id, predicted_home_score, predicted_away_score, status, submitted_at, locked_at")
+    .eq("user_id", sessionState.user.id)
     .order("fixture_id", { ascending: true });
 
   if (error) {

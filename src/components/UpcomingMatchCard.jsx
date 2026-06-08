@@ -852,7 +852,6 @@ function UpcomingMatchCard({
             value={prediction.home}
             disabled={!editable}
             onChange={(e) => onPredictionChange(match.id, "home", e.target.value)}
-            onBlur={(e) => { if (e.target.value === "") onPredictionChange(match.id, "home", "0"); }}
           />
           <span className="pb-1 font-display text-xl font-black text-emerald-300/70">-</span>
           <ScoreInput
@@ -860,7 +859,6 @@ function UpcomingMatchCard({
             value={prediction.away}
             disabled={!editable}
             onChange={(e) => onPredictionChange(match.id, "away", e.target.value)}
-            onBlur={(e) => { if (e.target.value === "") onPredictionChange(match.id, "away", "0"); }}
           />
         </div>
 
