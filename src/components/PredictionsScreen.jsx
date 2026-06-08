@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import UpcomingMatchCard from "./UpcomingMatchCard";
 import ScoringRulesModal from "./ScoringRulesModal";
 import SectionTitle from "./SectionTitle";
@@ -189,6 +189,36 @@ function PredictionsScreen({
   );
 
   const dateGroups = Object.values(groupedByDate);
+
+  // Weighted random: goals follow a realistic distribution (0-4, avg ~1.3)
+  const randomGoals = () => {
+    const r = Math.random();
+    if (r < 0.22) return "0";
+    if (r < 0.50) return "1";
+    if (r < 0.76) return "2";
+    if (r < 0.91) return "3";
+    return "4";
+  };
+
+  const handleRandomFill = useCallback(() => {
+    const editableMatches = sortedMatches.filter((match) => {
+      const phase = getPredictionPhase(match, predictions[match.id]);
+      return phase === "draft" || phase === "empty";
+    });
+    editableMatches.forEach((match) => {
+      onPredictionChange(match.id, "home", randomGoals());
+      onPredictionChange(match.id, "away", randomGoals());
+    });
+  }, [sortedMatches, predictions, onPredictionChange]);
+
+  const editableCount = useMemo(
+    () => sortedMatches.filter((m) => {
+      const phase = getPredictionPhase(m, predictions[m.id]);
+      return phase === "draft" || phase === "empty";
+    }).length,
+    [sortedMatches, predictions],
+  );
+
   const progress = useMemo(() => {
     const totals = matches.reduce(
       (acc, match) => {
@@ -231,13 +261,24 @@ function PredictionsScreen({
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-300">{t("rules_card_summary")}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setRulesOpen(true)}
-              className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white transition hover:bg-white/10 lg:w-auto"
-            >
-              {t("rules_card_button")}
-            </button>
+            <div className="flex gap-2 flex-col sm:flex-row lg:flex-col xl:flex-row">
+              {editableCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleRandomFill}
+                  className="flex items-center justify-center gap-2 w-full rounded-full border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300 transition hover:bg-violet-500/20 lg:w-auto"
+                >
+                  🎲 {t("predictions_random_fill")}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setRulesOpen(true)}
+                className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white transition hover:bg-white/10 lg:w-auto"
+              >
+                {t("rules_card_button")}
+              </button>
+            </div>
           </div>
         </div>
 
