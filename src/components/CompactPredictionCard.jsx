@@ -2,7 +2,7 @@ import { canReopenPrediction, getPredictionPhase, isPredictionEditable } from ".
 import { getGroupLabel, useAppLocale } from "../context/AppLocaleContext";
 import { useLocalizedMatch } from "../hooks/useLocalizedMatch";
 
-function MiniScoreInput({ value, onChange, label, disabled = false }) {
+function MiniScoreInput({ value, onChange, onBlur, label, disabled = false }) {
   return (
     <label className="flex flex-col items-center gap-0.5">
       <span className="text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
@@ -12,6 +12,7 @@ function MiniScoreInput({ value, onChange, label, disabled = false }) {
         maxLength={2}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         disabled={disabled}
         className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 text-center font-display text-sm font-bold text-white transition-all duration-300 placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-45 focus:border-emerald-400 focus:bg-slate-900/90 focus:ring-2 focus:ring-emerald-500/35 sm:h-9 sm:w-9"
         placeholder="0"
@@ -141,6 +142,7 @@ function CompactPredictionCard({
             value={prediction.home}
             disabled={!editable}
             onChange={(event) => onPredictionChange(match.id, "home", event.target.value)}
+            onBlur={(event) => { if (event.target.value === "") onPredictionChange(match.id, "home", "0"); }}
           />
           <span className="mt-3 text-xs font-black text-emerald-400/70">-</span>
           <MiniScoreInput
@@ -148,6 +150,7 @@ function CompactPredictionCard({
             value={prediction.away}
             disabled={!editable}
             onChange={(event) => onPredictionChange(match.id, "away", event.target.value)}
+            onBlur={(event) => { if (event.target.value === "") onPredictionChange(match.id, "away", "0"); }}
           />
         </div>
 

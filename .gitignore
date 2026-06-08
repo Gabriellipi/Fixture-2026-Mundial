@@ -13,3 +13,4 @@ android/local.properties
 android/.DS_Store
 ios/App/Pods
 .claude
+.vercel

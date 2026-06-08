@@ -623,6 +623,7 @@ function UpcomingMatchCard({
   selectedCountryCode,
   communityStats = null,
   liveData = null,
+  now = null,
   onPredictionChange,
   onSaveDraft,
   onReopenPrediction,
@@ -642,20 +643,21 @@ function UpcomingMatchCard({
 
   const THRESHOLD = 30 * 60 * 1000;
   const kickoffMs = kickoffDate?.getTime() ?? Infinity;
-  const [remaining, setRemaining] = useState(() => kickoffMs - Date.now());
+  const getNowMs = () => (now ? (now instanceof Date ? now.getTime() : new Date(now).getTime()) : Date.now());
+  const [remaining, setRemaining] = useState(() => kickoffMs - getNowMs());
   const withinThreshold = remaining <= THRESHOLD;
 
   useEffect(() => {
     if (kickoffMs === Infinity) return;
     if (!withinThreshold) {
-      const msToThreshold = kickoffMs - Date.now() - THRESHOLD;
+      const msToThreshold = kickoffMs - getNowMs() - THRESHOLD;
       if (msToThreshold <= 0) return;
-      const tid = setTimeout(() => setRemaining(kickoffMs - Date.now()), msToThreshold);
+      const tid = setTimeout(() => setRemaining(kickoffMs - getNowMs()), msToThreshold);
       return () => clearTimeout(tid);
     }
-    const id = setInterval(() => setRemaining(kickoffMs - Date.now()), 1000);
+    const id = setInterval(() => setRemaining(kickoffMs - getNowMs()), 1000);
     return () => clearInterval(id);
-  }, [kickoffMs, withinThreshold]);
+  }, [kickoffMs, withinThreshold, now]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isNearKickoff = remaining > 0 && withinThreshold;
   const isPastKickoffLocally = remaining <= 0;
@@ -849,7 +851,7 @@ function UpcomingMatchCard({
             value={prediction.home}
             disabled={!editable}
             onChange={(e) => onPredictionChange(match.id, "home", e.target.value)}
-            onBlur={() => { if (prediction.home === "") onPredictionChange(match.id, "home", "0"); }}
+            onBlur={(e) => { if (e.target.value === "") onPredictionChange(match.id, "home", "0"); }}
           />
           <span className="pb-1 font-display text-xl font-black text-emerald-300/70">-</span>
           <ScoreInput
@@ -857,7 +859,7 @@ function UpcomingMatchCard({
             value={prediction.away}
             disabled={!editable}
             onChange={(e) => onPredictionChange(match.id, "away", e.target.value)}
-            onBlur={() => { if (prediction.away === "") onPredictionChange(match.id, "away", "0"); }}
+            onBlur={(e) => { if (e.target.value === "") onPredictionChange(match.id, "away", "0"); }}
           />
         </div>
 

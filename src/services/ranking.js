@@ -20,8 +20,7 @@ export async function loadRankingBoard() {
     supabase.from("profiles").select("id, full_name, favorite_team, avatar_url"),
     supabase
       .from("predictions")
-      .select("user_id, fixture_id, predicted_home_score, predicted_away_score, status, submitted_at, locked_at")
-      .in("status", ["submitted", "locked"]),
+      .select("user_id, fixture_id, predicted_home_score, predicted_away_score, status, submitted_at, locked_at"),
   ]);
 
   if (profilesResult.error) {

@@ -44,6 +44,7 @@ test.describe('AUTH — sign-in screen UI', () => {
 
   test('Google OAuth — click redirects or shows provider page (skip if blocked)', async ({ page }) => {
     test.setTimeout(15_000);
+    page.on('console', msg => console.log('BROWSER LOG:', msg.text(), msg.type()));
     let redirected = false;
     page.on('framenavigated', (frame) => {
       if (frame === page.mainFrame() && frame.url().includes('google')) {
@@ -54,19 +55,21 @@ test.describe('AUTH — sign-in screen UI', () => {
     // Mock supabase oauth endpoint to avoid real redirect
     await page.route('**/auth/v1/authorize**', (route) =>
       route.fulfill({
-        status: 302,
-        headers: { Location: 'https://accounts.google.com/o/oauth2/auth?mock=1' },
+        status: 200,
+        contentType: 'text/html',
+        body: '<script>window.location.href = "https://accounts.google.com/o/oauth2/auth?mock=1";</script>',
       }),
     );
 
-    await page.locator('button:has-text("Google")').click();
-    // Either page navigated away or a popup was triggered — both are acceptable
-    await page.waitForTimeout(1_500);
-    // We just verify there's no JS error on the auth screen
-    const hasErrors = await page.evaluate(() =>
-      (window.__qaErrors ?? []).length > 0
+    // Mock Google account page to prevent network hit
+    await page.route('https://accounts.google.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html>Google</html>' })
     );
-    expect(hasErrors).toBe(false);
+
+    await page.locator('button:has-text("Google")').click({ noWaitAfter: true });
+    
+    // Verify redirect happened safely
+    await expect.poll(() => redirected).toBe(true);
   });
 
   test('Facebook OAuth — click does not crash page (skip if blocked)', async ({ page }) => {
@@ -85,7 +88,7 @@ test.describe('AUTH — sign out', () => {
     const { setupAuthMock } = await import('./helpers/mock-auth.js');
     await setupAuthMock(page);
     await page.goto(BASE);
-    await page.waitForSelector('nav[aria-label="Primary"], header', { timeout: 10_000 });
+    await page.waitForSelector('[data-testid="nav-inicio"]:visible, header', { timeout: 10_000 });
   });
 
   test('Sign-out button is visible in user menu', async ({ page }) => {

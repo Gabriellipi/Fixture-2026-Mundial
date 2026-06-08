@@ -105,7 +105,7 @@ test.describe('LANGUAGE — selector', () => {
 
   test('Body content translates — nav groups label changes with language', async ({ page }) => {
     // Verify Spanish default
-    await expect(page.locator('nav[aria-label="Primary"]')).toContainText('Grupos');
+    await expect(page.locator('[data-testid="nav-grupos"]').filter({ visible: true }).first()).toContainText('Grupos');
 
     // Switch to English
     await openLanguageDropdown(page);
@@ -113,7 +113,7 @@ test.describe('LANGUAGE — selector', () => {
     await page.waitForTimeout(500);
 
     // Nav should now show English
-    await expect(page.locator('nav[aria-label="Primary"]')).toContainText('Groups');
+    await expect(page.locator('[data-testid="nav-grupos"]').filter({ visible: true }).first()).toContainText('Groups');
   });
 
   test('localStorage persists language across reload', async ({ page }) => {
@@ -122,7 +122,7 @@ test.describe('LANGUAGE — selector', () => {
     await page.waitForTimeout(300);
 
     await page.reload();
-    await page.waitForSelector('nav[aria-label="Primary"]', { timeout: 10_000 });
+    await page.waitForSelector('[data-testid="nav-inicio"]:visible', { timeout: 10_000 });
 
     const stored = await page.evaluate(
       () => localStorage.getItem('preferredLanguage')

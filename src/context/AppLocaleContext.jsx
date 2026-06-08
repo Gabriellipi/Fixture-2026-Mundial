@@ -116,11 +116,6 @@ export function AppLocaleProvider({ children }) {
     document.documentElement.lang = language;
     document.documentElement.dir = dir;
     document.body.dir = dir;
-    try {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-    } catch {
-      // ignore
-    }
   }, [language]);
 
   useEffect(() => {
@@ -137,21 +132,33 @@ export function AppLocaleProvider({ children }) {
   // selections to be immediately reverted by the profile-sync effect).
   const stableSetLanguage = useCallback((nextLanguage) => {
     if (nextLanguage && SUPPORTED_LANGUAGES.includes(nextLanguage)) {
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+      } catch {}
       setLanguage(nextLanguage);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stableSetTimeZone = useCallback((nextTimeZone) => {
     if (nextTimeZone) {
+      try {
+        localStorage.setItem(TIMEZONE_STORAGE_KEY, nextTimeZone);
+      } catch {}
       setTimeZone(nextTimeZone);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stableSetPreferences = useCallback(({ language: nextLanguage, timeZone: nextTimeZone }) => {
     if (nextLanguage && SUPPORTED_LANGUAGES.includes(nextLanguage)) {
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+      } catch {}
       setLanguage(nextLanguage);
     }
     if (nextTimeZone) {
+      try {
+        localStorage.setItem(TIMEZONE_STORAGE_KEY, nextTimeZone);
+      } catch {}
       setTimeZone(nextTimeZone);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

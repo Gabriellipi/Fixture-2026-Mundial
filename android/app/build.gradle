@@ -3,12 +3,35 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.fixturedigital.app2026"
     compileSdk rootProject.ext.compileSdkVersion
+
+    signingConfigs {
+        release {
+            Properties properties = new Properties()
+            def localPropertiesFile = project.rootProject.file('local.properties')
+            if (localPropertiesFile.exists()) {
+                properties.load(localPropertiesFile.newDataInputStream())
+            }
+
+            def keystoreFile = file("../../Untitled.jks")
+            def storePasswordVar = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: properties.getProperty("keystore.password")
+            def keyAliasVar = System.getenv("ANDROID_KEY_ALIAS") ?: properties.getProperty("keystore.alias")
+            def keyPasswordVar = System.getenv("ANDROID_KEY_PASSWORD") ?: properties.getProperty("keystore.key_password")
+
+            if (keystoreFile.exists() && storePasswordVar && keyAliasVar && keyPasswordVar) {
+                storeFile keystoreFile
+                storePassword storePasswordVar
+                keyAlias keyAliasVar
+                keyPassword keyPasswordVar
+            }
+        }
+    }
+
     defaultConfig {
-        applicationId "app.fixture.mundial2026"
+        applicationId "com.fixturedigital.app2026"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "1.1"
+        versionCode 4
+        versionName "1.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,6 +41,9 @@ android {
     }
     buildTypes {
         release {
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

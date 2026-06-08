@@ -9,16 +9,8 @@ const TEST_COUNTRIES = [
 
 async function openPredictionsTab(page) {
   // Navigate to Predicciones tab
-  const desktopBtn = page
-    .locator('nav[aria-label="Primary"] button')
-    .filter({ hasText: /predic/i })
-    .first();
-
-  if (await desktopBtn.isVisible().catch(() => false)) {
-    await desktopBtn.click();
-  } else {
-    await page.locator('nav').last().locator('button').filter({ hasText: /predic/i }).first().click();
-  }
+  const btn = page.locator('[data-testid="nav-predicciones"]:visible').first();
+  await btn.click();
 
   // Wait for the country selector to appear
   await page.waitForSelector('select, [role="combobox"], button:has-text("México"), button:has-text("Mexico")', {
@@ -44,6 +36,14 @@ async function getFirstMatchTime(page) {
 }
 
 async function selectCountry(page, code) {
+  // If it's a direct button list (like in our PredictionsScreen)
+  const directBtn = page.locator(`[data-value="${code}"], [data-testid="country-select-${code}"]`).first();
+  if (await directBtn.isVisible().catch(() => false)) {
+    await directBtn.click();
+    await page.waitForTimeout(400);
+    return;
+  }
+
   // The country selector might be a <select> or a custom button-based dropdown
   const nativeSelect = page.locator('select').first();
   if (await nativeSelect.isVisible().catch(() => false)) {
@@ -54,8 +54,10 @@ async function selectCountry(page, code) {
 
   // Custom dropdown: click trigger, then pick the option
   const trigger = page.locator('[aria-haspopup], [role="combobox"]').first();
-  await trigger.click();
-  await page.waitForTimeout(200);
+  if (await trigger.isVisible().catch(() => false)) {
+    await trigger.click();
+    await page.waitForTimeout(200);
+  }
 
   const option = page.locator(`[data-value="${code}"], li:has-text("${code}"), button:has-text("${code}")`).first();
   if (await option.isVisible().catch(() => false)) {
@@ -116,16 +118,12 @@ test.describe('TIMEZONE — country selector updates match times', () => {
     });
   }
 
-  test('Timezone persists across tab navigation', async ({ page }) => {
+  test('Timezone persists across tab navigation', async ({ page, navigateTo }) => {
     await selectCountry(page, 'JP');
     await page.evaluate(() => localStorage.getItem('wc2026_timezone')); // ensure stored
 
     // Navigate away and back
-    const groupsBtn = page
-      .locator('nav[aria-label="Primary"] button')
-      .filter({ hasText: /grup/i })
-      .first();
-    if (await groupsBtn.isVisible().catch(() => false)) await groupsBtn.click();
+    await navigateTo('grupos');
     await page.waitForTimeout(300);
 
     await openPredictionsTab(page);

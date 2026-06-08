@@ -55,10 +55,11 @@ export function calculateUserRankingStats(matches, predictionRows = []) {
   const rowsWithScore = predictionRows.filter(
     (row) => row?.predicted_home_score !== null && row?.predicted_home_score !== undefined && row?.predicted_away_score !== null && row?.predicted_away_score !== undefined,
   );
+  const competitiveRows = rowsWithScore.filter((row) => row?.status === "submitted" || row?.status === "locked");
   const submittedCount = rowsWithScore.filter((row) => row?.status === "submitted" || row?.status === "locked").length;
-  const completion = matches.length > 0 ? Math.round((submittedCount / matches.length) * 100) : 0;
+  const completion = matches.length > 0 ? Math.round((rowsWithScore.length / matches.length) * 100) : 0;
 
-  const evaluated = rowsWithScore
+  const evaluated = competitiveRows
     .map((row) => {
       const match = matchMap.get(String(row.fixture_id));
       return getScoredResult(match, normalizePredictionRow(row));
@@ -71,7 +72,7 @@ export function calculateUserRankingStats(matches, predictionRows = []) {
   const officialPoints = evaluated.reduce((sum, item) => sum + item.points, 0);
   const accuracy = evaluated.length > 0 ? Math.round(((exact + partial) / evaluated.length) * 100) : 0;
 
-  const evaluatedOrdered = rowsWithScore
+  const evaluatedOrdered = competitiveRows
     .map((row) => {
       const match = matchMap.get(String(row.fixture_id));
       return {
@@ -98,6 +99,7 @@ export function calculateUserRankingStats(matches, predictionRows = []) {
 
   return {
     hasOfficialResults,
+    totalPredictions: matches.length,
     saved: rowsWithScore.length,
     submitted: submittedCount,
     completion,
@@ -148,6 +150,8 @@ export function buildRankingEntries({ matches, profiles = [], predictionRows = [
       streak: stats.streak,
       movement: stats.movement,
       hasOfficialResults: stats.hasOfficialResults,
+      totalPredictions: stats.totalPredictions,
+      saved: stats.saved,
       submitted: stats.submitted,
       completion: stats.completion,
     };

@@ -3,6 +3,8 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { detectPreferredLanguage, detectTimeZone, useAppLocale } from "./context/AppLocaleContext";
 import AuthScreen from "./components/AuthScreen";
+import Confetti from "./components/Confetti";
+import { hapticLight, hapticSuccess } from "./utils/haptics";
 import PrivacyPolicyScreen from "./components/PrivacyPolicyScreen";
 import TermsScreen from "./components/TermsScreen";
 import DeleteAccountModal from "./components/DeleteAccountModal";
@@ -171,15 +173,35 @@ function App() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     let handle;
-    CapacitorApp.addListener("appUrlOpen", ({ url }) => {
-      if (url?.startsWith("com.fixturedigital.app2026://")) {
-        supabase?.auth.getSessionFromUrl({ url });
+    CapacitorApp.addListener("appUrlOpen", async ({ url }) => {
+      if (!url?.startsWith("com.fixturedigital.app2026://")) return;
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.close().catch(() => {});
+      try {
+        // Parse custom scheme URL by replacing scheme with https for URL API compatibility
+        const parseable = url.replace("com.fixturedigital.app2026://", "https://x.x/");
+        const parsed = new URL(parseable);
+        const code = parsed.searchParams.get("code");
+        if (code) {
+          await supabase?.auth.exchangeCodeForSession(code);
+          return;
+        }
+        // Implicit flow fallback: tokens in hash
+        const hash = new URLSearchParams(url.split("#")[1] ?? "");
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          await supabase?.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        }
+      } catch (e) {
+        console.error("OAuth callback error:", e);
       }
     }).then((h) => { handle = h; });
     return () => { handle?.remove(); };
   }, []);
 
   const [activeTab, setActiveTab] = useState("inicio");
+  const [focusedPredictionMatchId, setFocusedPredictionMatchId] = useState(null);
   const [groupFocus, setGroupFocus] = useState({ groupId: null, teamCode: null });
   const [predictions, setPredictions] = useState(initialPredictions);
   const [saveStates, setSaveStates] = useState({});
@@ -201,6 +223,11 @@ function App() {
   const [legalScreen, setLegalScreen] = useState(null); // 'privacy' | 'terms' | null
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [communityStats, setCommunityStats] = useState({});
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+
+  useEffect(() => {
+    hapticLight();
+  }, [activeTab]);
 
   // Always-fresh ref so auto-save callbacks never close over stale predictions
   const predictionsRef = useRef(predictions);
@@ -324,6 +351,13 @@ function App() {
               : error.message ?? t("auth_profile_error"),
           );
         }
+      } else {
+        setPredictions(initialPredictions);
+        try {
+          window.localStorage.removeItem("fixture-digital-2026-predictions");
+        } catch (e) {
+          console.warn("Failed to clear local predictions:", e);
+        }
       }
     }
 
@@ -373,6 +407,12 @@ function App() {
         }
       } else {
         setProfile(null);
+        setPredictions(initialPredictions);
+        try {
+          window.localStorage.removeItem("fixture-digital-2026-predictions");
+        } catch (e) {
+          console.warn("Failed to clear local predictions:", e);
+        }
       }
     });
 
@@ -384,13 +424,19 @@ function App() {
 
   useEffect(() => {
     // Timezone always syncs from profile so match times show in user's saved region.
-    // Language is intentionally NOT synced here: the user's explicit localStorage choice
-    // (set via the language picker or profile save) must survive a page reload.
-    // Syncing language from the profile would overwrite that choice on every session.
+    // Language is synced from the profile only if the user has no explicit choice in localStorage.
+    // This allows a new/reloaded session without local choice to use their profile language,
+    // while preventing the profile from overwriting an explicit local selection.
     if (profile?.timezone) {
       setPreferences({ timeZone: profile.timezone });
     }
-  }, [profile?.timezone, setPreferences]);
+    if (profile?.preferred_language) {
+      const localLang = localStorage.getItem("preferredLanguage");
+      if (!localLang) {
+        setPreferences({ language: profile.preferred_language });
+      }
+    }
+  }, [profile?.timezone, profile?.preferred_language, setPreferences]);
 
   // Auto-save drafts: whenever a match enters "pending" state (user typed a score),
   // wait 1.5 s of inactivity then save as draft automatically.
@@ -599,6 +645,7 @@ function App() {
 
   const handlePredictionChange = (matchId, team, value) => {
     const numericValue = value.replace(/[^\d]/g, "").slice(0, 2);
+    hapticLight();
 
     setPredictions((current) => {
       const currentPrediction = current[matchId];
@@ -669,6 +716,10 @@ function App() {
         ...current,
         [matchId]: action === "submit" ? "submitted" : "saved",
       }));
+      if (action === "submit") {
+        hapticSuccess();
+        setConfettiTrigger(Date.now());
+      }
     } catch (error) {
       console.error("Prediction save failed", error);
       setSaveStates((current) => ({
@@ -732,6 +783,11 @@ function App() {
       teamCode: team.code,
     });
     setActiveTab("grupos");
+  };
+
+  const handleGoToPredictionCenter = (matchId = null) => {
+    setFocusedPredictionMatchId(matchId ?? null);
+    setActiveTab("predicciones");
   };
 
   const simulatedNow = useMemo(() => {
@@ -878,10 +934,12 @@ function App() {
     if (activeTab === "predicciones") {
       return (
         <PredictionsScreen
+          now={simulatedNow}
           matches={enrichedMatches}
           predictions={predictions}
           saveStates={saveStates}
           communityStats={communityStats}
+          focusedMatchId={focusedPredictionMatchId}
           onPredictionChange={handlePredictionChange}
           onSaveDraft={handleSaveDraft}
           onReopenPrediction={handleReopenPrediction}
@@ -898,7 +956,7 @@ function App() {
           matches={enrichedMatches}
           predictions={predictions}
           onReopenPrediction={handleReopenPrediction}
-          onGoToPredictionCenter={() => setActiveTab("predicciones")}
+          onGoToPredictionCenter={handleGoToPredictionCenter}
         />
       );
     }
@@ -994,7 +1052,7 @@ function App() {
           favoriteTeam={profile?.favorite_team ?? null}
           groups={groups}
           matches={displayMatches}
-          onGoToPredictions={() => setActiveTab("predicciones")}
+          onGoToPredictions={handleGoToPredictionCenter}
         />
 
         <ChampionPrediction
@@ -1061,6 +1119,7 @@ function App() {
                   />
                 ) : (
                   <UpcomingMatchCard
+                    now={simulatedNow}
                     match={match}
                     prediction={predictions[match.id]}
                     saveState={saveStates[match.id]}
@@ -1177,6 +1236,7 @@ function App() {
 
   return (
     <div className="relative min-h-screen bg-pitch">
+      <Confetti trigger={confettiTrigger} />
       <TopNav
         activeTab={activeTab}
         onChange={setActiveTab}

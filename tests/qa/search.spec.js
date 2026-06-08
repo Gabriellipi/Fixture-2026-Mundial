@@ -12,7 +12,7 @@ async function openSearch(page) {
   await btn.click();
 
   // Wait for search input
-  await page.waitForSelector('input[placeholder]', {
+  await page.waitForSelector('header input', {
     state: 'visible',
     timeout: 5_000,
   });
@@ -22,7 +22,7 @@ test.describe('SEARCH — team lookup', () => {
   test('Search "Argen" finds Argentina', async ({ page }) => {
     await openSearch(page);
 
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('Argen');
 
     // Wait for debounce (300ms) + render
@@ -35,7 +35,7 @@ test.describe('SEARCH — team lookup', () => {
 
   test('Search "bra" finds Brazil (localized)', async ({ page }) => {
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('bra');
     await page.waitForTimeout(500);
 
@@ -47,7 +47,7 @@ test.describe('SEARCH — team lookup', () => {
 
   test('Search "xxx" shows no-results message', async ({ page }) => {
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('xxx');
     await page.waitForTimeout(500);
 
@@ -58,7 +58,7 @@ test.describe('SEARCH — team lookup', () => {
 
   test('Selecting team navigates to Groups tab', async ({ page }) => {
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('Argen');
     await page.waitForTimeout(500);
 
@@ -72,7 +72,7 @@ test.describe('SEARCH — team lookup', () => {
 
   test('Groups stay in A–Z order after search selection', async ({ page }) => {
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('Argen');
     await page.waitForTimeout(500);
     await page.locator('button:has-text("Argentina")').first().click();
@@ -91,7 +91,7 @@ test.describe('SEARCH — team lookup', () => {
 
   test('Matched team gets highlight (ring or gold bg)', async ({ page }) => {
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('Argen');
     await page.waitForTimeout(500);
     await page.locator('button:has-text("Argentina")').first().click();
@@ -106,7 +106,7 @@ test.describe('SEARCH — team lookup', () => {
   test('Clearing search removes highlight', async ({ page }) => {
     // Navigate to groups first via search
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('Argen');
     await page.waitForTimeout(500);
     await page.locator('button:has-text("Argentina")').first().click();
@@ -114,7 +114,7 @@ test.describe('SEARCH — team lookup', () => {
 
     // Search again and clear
     await openSearch(page);
-    const input2 = page.locator('input[placeholder]').last();
+    const input2 = page.locator('header input').first();
     await input2.fill('');
     // Close search panel via Escape
     await page.keyboard.press('Escape');
@@ -134,7 +134,7 @@ test.describe('SEARCH — team lookup', () => {
 
   test('Keyboard navigation — ArrowDown + Enter selects first result', async ({ page }) => {
     await openSearch(page);
-    const input = page.locator('input[placeholder]').last();
+    const input = page.locator('header input').first();
     await input.fill('Argen');
     await page.waitForTimeout(500);
 
@@ -150,7 +150,7 @@ test.describe('SEARCH — team lookup', () => {
     await openSearch(page);
     await page.keyboard.press('Escape');
     await expect(
-      page.locator('input[placeholder]')
+      page.locator('header input')
     ).not.toBeVisible({ timeout: 3_000 });
   });
 });

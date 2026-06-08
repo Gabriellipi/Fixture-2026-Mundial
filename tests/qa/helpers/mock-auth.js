@@ -22,8 +22,8 @@ export const MOCK_USER = {
 export const MOCK_SESSION = {
   access_token: 'mock-qa-access-token-fixture2026',
   token_type: 'bearer',
-  expires_in: 3600,
-  expires_at: Math.floor(Date.now() / 1000) + 7200,
+  expires_in: 999999,
+  expires_at: 2147483647, // Safe from 2026 clock shifts
   refresh_token: 'mock-qa-refresh-token',
   user: MOCK_USER,
 };
@@ -43,20 +43,22 @@ const MOCK_PREDICTIONS = [
   {
     id: 'pred-001',
     user_id: 'qa-test-user-001',
-    match_id: 'group-A-1',
-    home_score: 2,
-    away_score: 1,
+    fixture_id: 11,
+    predicted_home_score: 2,
+    predicted_away_score: 1,
     status: 'submitted',
-    created_at: new Date().toISOString(),
+    submitted_at: new Date().toISOString(),
+    locked_at: null,
   },
   {
     id: 'pred-002',
     user_id: 'qa-test-user-001',
-    match_id: 'group-B-1',
-    home_score: 0,
-    away_score: 0,
+    fixture_id: 12,
+    predicted_home_score: 0,
+    predicted_away_score: 0,
     status: 'draft',
-    created_at: new Date().toISOString(),
+    submitted_at: null,
+    locked_at: null,
   },
 ];
 

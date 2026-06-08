@@ -10,6 +10,7 @@ export const BROADCASTERS = {
   FR: { name: "Francia", flag: "🇫🇷", channels: ["TF1", "beIN Sports"] },
   DE: { name: "Alemania", flag: "🇩🇪", channels: ["ARD", "ZDF", "MagentaTV"] },
   IL: { name: "Israel", flag: "🇮🇱", channels: ["KAN", "Sport 5"] },
+  JP: { name: "Japón", flag: "🇯🇵", channels: ["NHK", "Fuji TV"] },
 };
 
 export const COUNTRY_TIMEZONES = {
@@ -24,6 +25,7 @@ export const COUNTRY_TIMEZONES = {
   FR: "Europe/Paris",
   DE: "Europe/Berlin",
   IL: "Asia/Jerusalem",
+  JP: "Asia/Tokyo",
 };
 
 export const DEFAULT_FIXTURE_COUNTRY = "MX";

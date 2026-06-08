@@ -24,6 +24,7 @@ function BottomNav({ activeTab, onChange }) {
           return (
             <button
               key={item.id}
+              data-testid={`nav-${item.id}`}
               onClick={() => onChange(item.id)}
               className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-[10px] font-semibold leading-tight transition sm:px-2 sm:text-[11px] ${
                 isActive

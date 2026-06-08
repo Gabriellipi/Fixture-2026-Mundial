@@ -1,4 +1,4 @@
-import { Activity, Crown, Flame, Medal, Radio, Sparkles, TrendingUp, Trophy } from "lucide-react";
+import { Activity, CheckCircle2, Crown, Flame, Medal, Radio, Sparkles, TrendingUp, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { getCountryName, useAppLocale } from "../context/AppLocaleContext";
 import { useRankingData } from "../hooks/useRankingData";
@@ -52,6 +52,33 @@ function UserAvatar({ entry, team, currentUser = false }) {
   );
 }
 
+function PredictionCompletionBadge({ entry }) {
+  const { t } = useAppLocale();
+  const totalPredictions = entry.totalPredictions ?? 0;
+  const completedPredictions = entry.saved ?? entry.submitted ?? 0;
+  const completed = totalPredictions > 0 && completedPredictions >= totalPredictions;
+
+  return (
+    <span className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+      completed
+        ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
+        : "border-white/10 bg-white/[0.04] text-slate-400"
+    }`}>
+      {completed ? (
+        <CheckCircle2 size={12} className="shrink-0" />
+      ) : (
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-500" />
+      )}
+      <span className="break-words">
+        {t("ranking_completion_progress", {
+          completed: completedPredictions,
+          total: totalPredictions,
+        })}
+      </span>
+    </span>
+  );
+}
+
 function PodiumCard({ entry, team, rank, currentUser }) {
   const { t } = useAppLocale();
   const accent =
@@ -75,13 +102,14 @@ function PodiumCard({ entry, team, rank, currentUser }) {
         ) : null}
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex items-start gap-3">
         <UserAvatar entry={entry} team={team} currentUser={currentUser} />
         <div className="min-w-0">
-          <p className="truncate text-lg font-bold text-white">{entry.name}</p>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+          <p className="break-words text-lg font-bold leading-tight text-white">{entry.name}</p>
+          <p className="mt-1 break-words text-[11px] uppercase tracking-[0.18em] text-slate-400">
             {team ? getCountryName(team, t) : entry.favoriteTeam}
           </p>
+          <PredictionCompletionBadge entry={entry} />
         </div>
       </div>
 
@@ -105,31 +133,39 @@ function PodiumCard({ entry, team, rank, currentUser }) {
 
 function RankingRow({ entry, team, currentUser = false }) {
   const { t } = useAppLocale();
+  const movementLabel = entry.movement > 0 ? `+${entry.movement}` : entry.movement;
 
   return (
-    <div className={`grid grid-cols-[40px_minmax(0,1.8fr)_70px_80px_70px_70px] items-center gap-3 rounded-[24px] border px-4 py-3 ${currentUser ? "border-emerald-400/25 bg-emerald-500/10" : "border-white/8 bg-white/[0.03]"}`}>
-      <div className="text-sm font-black text-white">#{entry.rank}</div>
-      <div className="flex min-w-0 items-center gap-3">
-        <UserAvatar entry={entry} team={team} currentUser={currentUser} />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-white">
-            {entry.name}
-            {currentUser ? <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-emerald-300">{t("ranking_you")}</span> : null}
-          </p>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
-            <span>{team ? getCountryName(team, t) : entry.favoriteTeam}</span>
-            <span className={`inline-flex items-center gap-1 ${entry.online ? "text-emerald-300" : "text-slate-500"}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${entry.online ? "bg-emerald-400" : "bg-slate-500"}`} />
-              {entry.online ? t("ranking_status_online") : t("ranking_status_recent")}
-            </span>
+    <div className={`flex min-w-0 items-center gap-3 rounded-[24px] border px-3 py-4 transition hover:border-white/20 hover:bg-white/[0.055] 2xl:px-4 ${currentUser ? "border-emerald-400/25 bg-emerald-500/10" : "border-white/8 bg-white/[0.03]"}`}>
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/25 font-display text-base font-black tabular-nums text-white 2xl:h-11 2xl:w-11">
+          #{entry.rank}
+        </div>
+        <div className="flex min-w-0 items-start gap-3">
+          <UserAvatar entry={entry} team={team} currentUser={currentUser} />
+          <div className="min-w-0">
+            <p className="break-words text-sm font-bold leading-tight text-white 2xl:text-base">
+              {entry.name}
+              {currentUser ? <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-emerald-300">{t("ranking_you")}</span> : null}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+              <span className="break-words">{team ? getCountryName(team, t) : entry.favoriteTeam}</span>
+              <span className={`inline-flex items-center gap-1 ${entry.online ? "text-emerald-300" : "text-slate-500"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${entry.online ? "bg-emerald-400" : "bg-slate-500"}`} />
+                {entry.online ? t("ranking_status_online") : t("ranking_status_recent")}
+              </span>
+            </div>
+            <PredictionCompletionBadge entry={entry} />
           </div>
         </div>
       </div>
-      <div className="text-center text-sm font-black text-white">{entry.score}</div>
-      <div className="text-center text-sm font-black text-white">{entry.accuracy}%</div>
-      <div className="text-center text-sm font-black text-white">{entry.exact}</div>
-      <div className={`text-center text-sm font-black ${entry.movement > 0 ? "text-emerald-300" : entry.movement < 0 ? "text-red-200" : "text-slate-400"}`}>
-        {entry.movement > 0 ? `+${entry.movement}` : entry.movement}
+      <div className="grid w-[248px] shrink-0 grid-cols-4 items-center rounded-2xl border border-white/10 bg-black/20 py-2 2xl:w-[304px]">
+        <div className="text-center text-sm font-black tabular-nums text-white">{entry.score}</div>
+        <div className="text-center text-sm font-black tabular-nums text-white">{entry.accuracy}%</div>
+        <div className="text-center text-sm font-black tabular-nums text-white">{entry.exact}</div>
+        <div className={`text-center text-sm font-black tabular-nums ${entry.movement > 0 ? "text-emerald-300" : entry.movement < 0 ? "text-red-200" : "text-slate-400"}`}>
+          {movementLabel}
+        </div>
       </div>
     </div>
   );
@@ -141,20 +177,21 @@ function RankingCard({ entry, team, currentUser = false }) {
   return (
     <div className={`rounded-[24px] border p-4 ${currentUser ? "border-emerald-400/25 bg-emerald-500/10" : "border-white/10 bg-white/[0.03]"}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-start gap-3">
           <UserAvatar entry={entry} team={team} currentUser={currentUser} />
-          <div>
-            <p className="text-sm font-bold text-white">
+          <div className="min-w-0">
+            <p className="break-words text-sm font-bold leading-tight text-white">
               #{entry.rank} {entry.name}
               {currentUser ? <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-emerald-300">{t("ranking_you")}</span> : null}
             </p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+            <p className="mt-1 break-words text-[11px] uppercase tracking-[0.18em] text-slate-400">
               {team ? getCountryName(team, t) : entry.favoriteTeam}
             </p>
+            <PredictionCompletionBadge entry={entry} />
           </div>
         </div>
 
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${entry.online ? "border border-emerald-400/20 bg-emerald-500/10 text-emerald-300" : "border border-white/10 bg-white/5 text-slate-400"}`}>
+        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${entry.online ? "border border-emerald-400/20 bg-emerald-500/10 text-emerald-300" : "border border-white/10 bg-white/5 text-slate-400"}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${entry.online ? "bg-emerald-400" : "bg-slate-500"}`} />
           {entry.online ? t("ranking_status_online") : t("ranking_status_recent")}
         </span>
@@ -234,6 +271,10 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
       miss: userPerformance.miss,
       movement: userPerformance.movement,
       hasOfficialResults: userPerformance.hasOfficialResults,
+      totalPredictions: userPerformance.totalPredictions,
+      saved: userPerformance.saved,
+      submitted: userPerformance.submitted,
+      completion: userPerformance.completion,
       isCurrentUser: true,
       rank: 1,
     },
@@ -245,7 +286,23 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
     currentUser,
   });
 
-  const leaderboard = realtimeEntries.length > 0 ? realtimeEntries : previewLeaderboard;
+  const leaderboard = useMemo(() => {
+    const source = realtimeEntries.length > 0 ? realtimeEntries : previewLeaderboard;
+
+    return source.map((entry) => {
+      if (!entry.isCurrentUser) {
+        return entry;
+      }
+
+      return {
+        ...entry,
+        totalPredictions: userPerformance.totalPredictions,
+        saved: userPerformance.saved,
+        submitted: userPerformance.submitted,
+        completion: userPerformance.completion,
+      };
+    });
+  }, [previewLeaderboard, realtimeEntries, userPerformance.completion, userPerformance.saved, userPerformance.submitted, userPerformance.totalPredictions]);
 
   const currentEntry = leaderboard.find((entry) => entry.isCurrentUser) ?? leaderboard[0];
   const aheadEntry = leaderboard[currentEntry.rank - 2] ?? null;
@@ -313,8 +370,8 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-          <div className="space-y-4">
+        <div className="mt-6 grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+          <div className="min-w-0 space-y-4">
             <div className="grid gap-4 lg:grid-cols-3">
               {topThree.map((entry, index) => (
                 <PodiumCard
@@ -356,19 +413,22 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
                 </div>
               </div>
 
-              <div className="mt-4 hidden space-y-3 lg:block">
-                <div className="grid grid-cols-[40px_minmax(0,1.8fr)_70px_80px_70px_70px] gap-3 px-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  <div>#</div>
-                  <div>{t("ranking_user")}</div>
-                  <div className="text-center">{t("ranking_pts")}</div>
-                  <div className="text-center">{t("ranking_accuracy_short")}</div>
-                  <div className="text-center">{t("ranking_exact_short")}</div>
-                  <div className="text-center">{t("ranking_move_short")}</div>
+              <div className="mt-4 hidden lg:block">
+                <div className="space-y-3">
+                <div className="flex items-center gap-3 px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500 2xl:px-4 2xl:text-[10px] 2xl:tracking-[0.16em]">
+                  <div className="min-w-0 flex-1 pl-[52px]">{t("ranking_user")}</div>
+                  <div className="grid w-[248px] shrink-0 grid-cols-4 2xl:w-[304px]">
+                    <div className="text-center">{t("ranking_pts")}</div>
+                    <div className="text-center">{t("ranking_accuracy_short")}</div>
+                    <div className="text-center">{t("ranking_exact_short")}</div>
+                    <div className="text-center">{t("ranking_move_short")}</div>
+                  </div>
                 </div>
 
                 {filteredEntries.map((entry) => (
                   <RankingRow key={entry.id} entry={entry} team={teamMap[entry.favoriteTeam] ?? null} currentUser={Boolean(entry.isCurrentUser)} />
                 ))}
+                </div>
               </div>
 
               <div className="mt-4 space-y-3 lg:hidden">
@@ -379,25 +439,25 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <div className="rounded-[28px] border border-emerald-400/20 bg-[linear-gradient(145deg,rgba(16,185,129,0.14),rgba(15,23,42,0.58))] p-5">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300">{t("ranking_chase_badge")}</p>
-                  <h3 className="mt-2 text-2xl font-bold text-white">{t("ranking_chase_title")}</h3>
+                  <h3 className="mt-2 break-words text-xl font-bold leading-tight text-white 2xl:text-2xl">{t("ranking_chase_title")}</h3>
                 </div>
-                <div className="rounded-3xl border border-white/10 bg-black/20 p-3 text-emerald-300">
+                <div className="shrink-0 rounded-3xl border border-white/10 bg-black/20 p-3 text-emerald-300">
                   <Crown size={20} />
                 </div>
               </div>
 
               <div className="mt-4 rounded-[24px] border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_your_position")}</p>
                     <p className="mt-1 text-3xl font-black text-white">#{currentEntry.rank}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="shrink-0 text-right">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_pts")}</p>
                     <p className="mt-1 text-2xl font-black text-white">{currentEntry.score}</p>
                   </div>
@@ -408,7 +468,7 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
                 {aheadEntry ? (
                   <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_gap_badge")}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">
+                    <p className="mt-2 break-words text-sm font-semibold leading-6 text-white">
                       {t("ranking_gap_text", { name: aheadEntry.name, gap: Math.max(1, aheadEntry.score - currentEntry.score) })}
                     </p>
                   </div>
@@ -417,7 +477,7 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
                 {behindEntry ? (
                   <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_pressure_badge")}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">
+                    <p className="mt-2 break-words text-sm font-semibold leading-6 text-white">
                       {t("ranking_pressure_text", { name: behindEntry.name, gap: Math.max(1, currentEntry.score - behindEntry.score) })}
                     </p>
                   </div>
@@ -427,16 +487,16 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
 
             <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300">{t("ranking_activity_badge")}</p>
-              <h3 className="mt-2 text-2xl font-bold text-white">{t("ranking_activity_title")}</h3>
+              <h3 className="mt-2 break-words text-xl font-bold leading-tight text-white 2xl:text-2xl">{t("ranking_activity_title")}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-300">{t("ranking_activity_desc")}</p>
 
               <div className="mt-4 space-y-3">
                 {activityFeed.map((item, index) => (
                   <div key={`${item}-${index}`} className="flex items-start gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                    <div className="mt-0.5 rounded-2xl bg-emerald-500/10 p-2 text-emerald-300">
+                    <div className="mt-0.5 shrink-0 rounded-2xl bg-emerald-500/10 p-2 text-emerald-300">
                       {index === 0 ? <Trophy size={16} /> : index === 1 ? <TrendingUp size={16} /> : <Sparkles size={16} />}
                     </div>
-                    <p className="text-sm leading-6 text-white">{item}</p>
+                    <p className="min-w-0 break-words text-sm leading-6 text-white">{item}</p>
                   </div>
                 ))}
               </div>
@@ -453,7 +513,7 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3 2xl:grid-cols-1">
                 {[
                   t("ranking_reward_precision"),
                   t("ranking_reward_exact"),

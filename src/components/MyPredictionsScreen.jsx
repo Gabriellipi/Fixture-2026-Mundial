@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronDown, Clock3, Copy, FolderHeart, LockKeyhole, Share2, Target, TrendingUp, Trophy } from "lucide-react";
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronDown, Clock3, Copy, FolderHeart, LockKeyhole, Share2, Target, TrendingUp, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import ScoringRulesModal from "./ScoringRulesModal";
 import SectionTitle from "./SectionTitle";
@@ -103,6 +103,104 @@ function SummaryCard({ label, value, tone = "default", icon: Icon }) {
   );
 }
 
+function MissingPredictionPanel({ items, onGoToPredictionCenter }) {
+  const { t, language, timeZone } = useAppLocale();
+  const visibleGroups = items.slice(0, 3);
+  const remainingGroups = Math.max(0, items.length - visibleGroups.length);
+  const totalMissing = items.reduce((sum, group) => sum + group.matches.length, 0);
+
+  return (
+    <div className="mt-5 rounded-[24px] border border-gold-300/20 bg-[linear-gradient(135deg,rgba(250,204,21,0.12),rgba(15,23,42,0.42))] p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="shrink-0 rounded-2xl border border-gold-300/20 bg-gold-300/10 p-2.5 text-gold-300">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold-300">
+              {t("my_picks_missing_badge")}
+            </p>
+            <h4 className="mt-1 text-lg font-bold text-white">
+              {t("my_picks_missing_title", { count: totalMissing })}
+            </h4>
+            <p className="mt-1 text-sm leading-6 text-slate-300">
+              {t("my_picks_missing_desc")}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onGoToPredictionCenter}
+          className="shrink-0 rounded-full border border-gold-300/20 bg-gold-300 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-950 transition hover:bg-gold-200"
+        >
+          {t("my_picks_missing_action")}
+        </button>
+      </div>
+
+      {totalMissing > 0 ? (
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          {visibleGroups.map((group) => (
+            <div key={group.dateIso} className="rounded-[20px] border border-white/10 bg-black/20 p-3">
+              <div className="flex items-center gap-2">
+                <CalendarDays size={14} className="text-gold-300" />
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
+                  {formatDateLabel(group.dateIso, language, timeZone)}
+                </p>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {group.matches.slice(0, 3).map(({ match, phase }) => {
+                  const homeTeamName = getCountryName(match.homeTeam, t);
+                  const awayTeamName = getCountryName(match.awayTeam, t);
+                  const statusLabel = phase === "draft" ? t("pick_status_draft") : t("my_picks_missing_no_pick");
+
+                  return (
+                    <button
+                      key={match.id}
+                      type="button"
+                      onClick={() => onGoToPredictionCenter?.(match.id)}
+                      className="flex w-full items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left transition hover:border-gold-300/25 hover:bg-white/[0.07]"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold text-white">
+                          {homeTeamName} vs {awayTeamName}
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-slate-500">
+                          {formatMatchTime(match, language, timeZone)} · {match.venue}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-gold-300/20 bg-gold-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-gold-300">
+                        {statusLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {group.matches.length > 3 ? (
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    {t("my_picks_missing_more", { count: group.matches.length - 3 })}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">
+          {t("my_picks_missing_clear")}
+        </div>
+      )}
+
+      {remainingGroups > 0 ? (
+        <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          {t("my_picks_missing_more_dates", { count: remainingGroups })}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function getShareCapabilities() {
   if (typeof window === "undefined") {
     return { native: false, clipboard: false };
@@ -166,8 +264,9 @@ function PredictionRow({ match, prediction, onReopenPrediction, onGoToPrediction
       {/* ── Compact row ── */}
       <button
         type="button"
+        data-testid="picks-row"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.03]"
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-white/[0.03]"
       >
         {/* Group pill */}
         <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/10 text-[9px] font-extrabold text-slate-400">
@@ -352,6 +451,42 @@ function MyPredictionsScreen({
       percent: totalMatches > 0 ? Math.round((submittedCount / totalMatches) * 100) : 0,
     };
   }, [matches.length, savedPredictions]);
+
+  const missingPredictionGroups = useMemo(() => {
+    const groupsByDate = matches.reduce((acc, match) => {
+      const prediction = predictions[match.id];
+      const phase = getPredictionPhase(match, prediction);
+      const isSent = phase === "submitted" || phase === "locked";
+
+      if (isSent) {
+        return acc;
+      }
+
+      const dateIso = match.dateIso;
+      if (!acc[dateIso]) {
+        acc[dateIso] = {
+          dateIso,
+          matches: [],
+        };
+      }
+
+      acc[dateIso].matches.push({
+        match,
+        phase: hasPredictionScore(prediction) ? "draft" : "missing",
+      });
+
+      return acc;
+    }, {});
+
+    return Object.values(groupsByDate)
+      .map((group) => ({
+        ...group,
+        matches: group.matches.sort((firstItem, secondItem) =>
+          firstItem.match.time.localeCompare(secondItem.match.time),
+        ),
+      }))
+      .sort((firstGroup, secondGroup) => firstGroup.dateIso.localeCompare(secondGroup.dateIso));
+  }, [matches, predictions]);
   const analytics = useMemo(() => {
     const evaluated = savedPredictions
       .map(({ match, prediction }) => getScoredResult(match, prediction))
@@ -627,6 +762,11 @@ function MyPredictionsScreen({
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/8">
             <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-gold-300 to-emerald-300" style={{ width: `${progress.percent}%` }} />
           </div>
+
+          <MissingPredictionPanel
+            items={missingPredictionGroups}
+            onGoToPredictionCenter={onGoToPredictionCenter}
+          />
         </div>
 
         <div className="mt-4 flex justify-end">
@@ -676,7 +816,7 @@ function MyPredictionsScreen({
         />
 
         {counts.total === 0 ? (
-          <div className="panel mt-4 p-6 text-center">
+          <div data-testid="picks-empty-state" className="panel mt-4 p-6 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-400/10 text-emerald-300">
               <Target size={22} />
             </div>

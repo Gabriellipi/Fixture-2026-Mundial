@@ -15,7 +15,7 @@ export const test = base.extend({
 
     // Wait for either the main nav (authenticated) or auth screen
     await page.waitForSelector(
-      'nav[aria-label="Primary"], button:has-text("Google")',
+      '[data-testid="nav-inicio"]:visible, button:has-text("Google")',
       { timeout: 10_000 },
     );
 

@@ -1,23 +1,11 @@
 import { test, expect } from './fixtures/authenticated.js';
 
 async function openMyPicksTab(page) {
-  const btn = page
-    .locator('nav[aria-label="Primary"] button')
-    .filter({ hasText: /picks|mis pick/i })
-    .first();
-
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click();
-  } else {
-    // Try bottom nav (mobile)
-    await page.locator('nav').last().locator('button').filter({ hasText: /picks/i }).first().click();
-  }
+  const btn = page.locator('[data-testid="nav-mispicks"]:visible').first();
+  await btn.click();
 
   // Wait for the picks list or empty state
-  await page.waitForSelector(
-    'button:has(.rounded-full), [data-testid="picks-row"], text=/sin predicciones|no predictions|no picks/i',
-    { timeout: 10_000 }
-  );
+  await page.locator('[data-testid="picks-row"], [data-testid="picks-empty-state"]').first().waitFor({ timeout: 10_000 });
 }
 
 test.describe('MIS PICKS — compact row layout', () => {
@@ -30,23 +18,23 @@ test.describe('MIS PICKS — compact row layout', () => {
           body: JSON.stringify([
             {
               id: 'mock-pred-1',
-              match_id: 'group_A_1',
-              home_score: 2,
-              away_score: 1,
-              status: 'borrador',
+              fixture_id: 1,
+              predicted_home_score: 2,
+              predicted_away_score: 1,
+              status: 'draft',
               user_id: 'mock-user-id',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              submitted_at: null,
+              locked_at: null,
             },
             {
               id: 'mock-pred-2',
-              match_id: 'group_B_1',
-              home_score: 0,
-              away_score: 0,
-              status: 'enviada',
+              fixture_id: 2,
+              predicted_home_score: 0,
+              predicted_away_score: 0,
+              status: 'submitted',
               user_id: 'mock-user-id',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              submitted_at: new Date().toISOString(),
+              locked_at: null,
             },
           ]),
           headers: { 'Content-Type': 'application/json' },
@@ -61,18 +49,18 @@ test.describe('MIS PICKS — compact row layout', () => {
     await openMyPicksTab(page);
 
     // Find a compact prediction row
-    const row = page.locator('button:has(.rounded-full)').first();
+    const row = page.locator('[data-testid="picks-row"]').first();
 
     if (await row.isVisible().catch(() => false)) {
       const box = await row.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.height).toBeLessThan(60);
+      expect(box.height).toBeLessThan(60);
     } else {
       // Check for any compact row-like element
       const altRow = page.locator('[data-testid="picks-row"]').first();
       if (await altRow.isVisible().catch(() => false)) {
         const box = await altRow.boundingBox();
-        expect(box!.height).toBeLessThan(60);
+        expect(box.height).toBeLessThan(60);
       } else {
         test.skip();
       }
@@ -88,7 +76,7 @@ test.describe('MIS PICKS — compact row layout', () => {
     ).first();
 
     // Just verify structure exists (not empty page crash)
-    const rowCount = await page.locator('button:has(.rounded-full)').count();
+    const rowCount = await page.locator('[data-testid="picks-row"]').count();
     if (rowCount === 0) test.skip();
 
     // If rows exist, assert date context somewhere on page
@@ -99,7 +87,7 @@ test.describe('MIS PICKS — compact row layout', () => {
   test('Clicking a row expands accordion with full details', async ({ page }) => {
     await openMyPicksTab(page);
 
-    const row = page.locator('button:has(.rounded-full)').first();
+    const row = page.locator('[data-testid="picks-row"]').first();
     if (!(await row.isVisible().catch(() => false))) test.skip();
 
     // Measure height before
@@ -135,7 +123,7 @@ test.describe('MIS PICKS — compact row layout', () => {
   test('Clicking expanded row again collapses it', async ({ page }) => {
     await openMyPicksTab(page);
 
-    const row = page.locator('button:has(.rounded-full)').first();
+    const row = page.locator('[data-testid="picks-row"]').first();
     if (!(await row.isVisible().catch(() => false))) test.skip();
 
     await row.click();
@@ -152,7 +140,7 @@ test.describe('MIS PICKS — compact row layout', () => {
   test('ChevronDown icon rotates when row is expanded', async ({ page }) => {
     await openMyPicksTab(page);
 
-    const row = page.locator('button:has(.rounded-full)').first();
+    const row = page.locator('[data-testid="picks-row"]').first();
     if (!(await row.isVisible().catch(() => false))) test.skip();
 
     // Look for chevron rotation class change
@@ -190,7 +178,7 @@ test.describe('MIS PICKS — filter tabs', () => {
     await openMyPicksTab(page);
 
     const filterBtn = page.locator(
-      'button:has-text("Enviada"), button:has-text("Sent"), button:has-text("ENVIADAS"), button:has-text("Enviadas")'
+      'button:has-text("Enviada"), button:has-text("Sent"), button:has-text("Submitted"), button:has-text("ENVIADAS"), button:has-text("Enviadas")'
     ).first();
 
     if (await filterBtn.isVisible().catch(() => false)) {
@@ -204,7 +192,7 @@ test.describe('MIS PICKS — filter tabs', () => {
     await openMyPicksTab(page);
 
     const filterBtn = page.locator(
-      'button:has-text("Borrador"), button:has-text("Borradores")'
+      'button:has-text("Borrador"), button:has-text("Borradores"), button:has-text("Draft"), button:has-text("Drafts")'
     ).first();
 
     if (!(await filterBtn.isVisible().catch(() => false))) test.skip();
@@ -212,8 +200,8 @@ test.describe('MIS PICKS — filter tabs', () => {
     await filterBtn.click();
     await page.waitForTimeout(300);
 
-    // Sent badges should not appear
-    const sentBadges = page.locator('text=/ENVIADA|SENT/i');
+    // Sent badges should not appear inside the rows
+    const sentBadges = page.locator('[data-testid="picks-row"]').locator('text=/ENVIADA|SENT|SUBMITTED/i');
     const sentCount = await sentBadges.count();
     expect(sentCount).toBe(0);
   });

@@ -145,6 +145,7 @@ function TopNav({ activeTab, onChange, onSignOut, onSearchTeam, groups = [], use
                 <button
                   key={item.id}
                   type="button"
+                  data-testid={`nav-${item.id}`}
                   onClick={() => onChange(item.id)}
                   className={`relative text-[13px] font-semibold uppercase tracking-[0.18em] text-white transition hover:opacity-75 ${
                     isActive ? "opacity-100" : "opacity-90"
@@ -183,6 +184,7 @@ function TopNav({ activeTab, onChange, onSignOut, onSearchTeam, groups = [], use
                     <input
                       autoFocus
                       type="text"
+                      data-testid="search-input"
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       onKeyDown={(event) => {

@@ -1,3 +1,4 @@
+import { Browser } from "@capacitor/browser";
 import { Capacitor } from "@capacitor/core";
 import { supabase, hasSupabaseEnv } from "../lib/supabase";
 
@@ -47,16 +48,31 @@ export function subscribeToAuthChanges(callback) {
   return () => subscription.unsubscribe();
 }
 
+async function signInWithOAuthNative(provider) {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: APP_SCHEME,
+      skipBrowserRedirect: true,
+    },
+  });
+  if (error) return { error };
+  if (data?.url) await Browser.open({ url: data.url });
+  return { data };
+}
+
 export async function signInWithGoogle() {
   if (!supabase) {
     throw new Error("Supabase is not configured");
   }
 
+  if (Capacitor.isNativePlatform()) {
+    return signInWithOAuthNative("google");
+  }
+
   return supabase.auth.signInWithOAuth({
     provider: "google",
-    options: {
-      redirectTo: getRedirectTo(),
-    },
+    options: { redirectTo: getRedirectTo() },
   });
 }
 
@@ -86,6 +102,10 @@ export async function signInWithFacebook() {
     throw new Error("Supabase is not configured");
   }
 
+  if (Capacitor.isNativePlatform()) {
+    return signInWithOAuthNative("facebook");
+  }
+
   return supabase.auth.signInWithOAuth({
     provider: "facebook",
     options: { redirectTo: getRedirectTo() },
@@ -111,6 +131,12 @@ export async function verifyPhoneOtp(phone, token) {
 export async function signOutUser() {
   if (!supabase) {
     return;
+  }
+
+  try {
+    window.localStorage.removeItem("fixture-digital-2026-predictions");
+  } catch (err) {
+    console.warn("Failed to remove local predictions on sign out:", err);
   }
 
   return supabase.auth.signOut();

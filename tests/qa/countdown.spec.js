@@ -37,15 +37,8 @@ async function shiftClockToNearKickoff(page, targetMatchTimeISO, shiftMinutes = 
 }
 
 async function openPredictionsTab(page) {
-  const btn = page
-    .locator('nav[aria-label="Primary"] button')
-    .filter({ hasText: /predic/i })
-    .first();
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click();
-  } else {
-    await page.locator('nav').last().locator('button').filter({ hasText: /predic/i }).first().click();
-  }
+  const btn = page.locator('[data-testid="nav-predicciones"]:visible').first();
+  await btn.click();
   await page.waitForSelector('article', { timeout: 10_000 });
 }
 
@@ -70,7 +63,7 @@ test.describe('COUNTDOWN — PRÓXIMO badge and MM:SS timer', () => {
 
     if (!nearFutureISO) {
       // No future matches with datetime attribute — use a hardcoded 2026 fixture date
-      nearFutureISO = '2026-06-11T15:00:00Z'; // Opening match
+      nearFutureISO = '2026-06-11T19:00:00Z'; // Opening match
     }
 
     // Reload the page with the clock shifted to 25 min before that kickoff
@@ -78,32 +71,30 @@ test.describe('COUNTDOWN — PRÓXIMO badge and MM:SS timer', () => {
     await page.reload();
     await openPredictionsTab(page);
 
-    // PRÓXIMO badge: orange border, has text like "PRÓXIMO" or "NEXT"
-    const proximoBadge = page.locator(
-      '[class*="border-orange"], text=/PRÓXIMO|NEXT|próximo/i'
-    ).first();
+    // PRÓXIMO badge: has text like "Próximo" or "Next" inside the target card
+    const proximoBadge = page.locator('article').first().locator('text=/Próximo|Next/i');
 
     await expect(proximoBadge).toBeVisible({ timeout: 10_000 });
   });
 
   test('MM:SS countdown timer is visible when near kickoff', async ({ page }) => {
-    const nearFutureISO = '2026-06-11T15:00:00Z';
+    const nearFutureISO = '2026-06-11T19:00:00Z';
     await shiftClockToNearKickoff(page, nearFutureISO, 25);
     await page.reload();
     await openPredictionsTab(page);
 
-    // Timer format: "24:59" or similar MM:SS
-    const timer = page.locator('text=/^\\d{2}:\\d{2}$/').first();
+    // Timer format: "24:59" or similar MM:SS on the first card
+    const timer = page.locator('article').first().locator('text=/^\\d{2}:\\d{2}$/');
     await expect(timer).toBeVisible({ timeout: 10_000 });
   });
 
   test('Timer counts down (two readings differ)', async ({ page }) => {
-    const nearFutureISO = '2026-06-11T15:00:00Z';
+    const nearFutureISO = '2026-06-11T19:00:00Z';
     await shiftClockToNearKickoff(page, nearFutureISO, 25);
     await page.reload();
     await openPredictionsTab(page);
 
-    const timer = page.locator('text=/^\\d{2}:\\d{2}$/').first();
+    const timer = page.locator('article').first().locator('text=/^\\d{2}:\\d{2}$/');
     await timer.waitFor({ state: 'visible', timeout: 10_000 });
 
     const t1 = await timer.innerText();
@@ -116,33 +107,31 @@ test.describe('COUNTDOWN — PRÓXIMO badge and MM:SS timer', () => {
 
 test.describe('COUNTDOWN — EN VIVO badge at kickoff', () => {
   test('EN VIVO badge appears when match is at/past kickoff', async ({ page }) => {
-    const pastKickoffISO = '2026-06-11T15:00:00Z';
+    const pastKickoffISO = '2026-06-11T19:00:00Z';
     // Shift to 1 minute AFTER kickoff
     await shiftClockToNearKickoff(page, pastKickoffISO, -1);
     await page.reload();
     await openPredictionsTab(page);
 
-    // EN VIVO badge: green, pulsing
-    const liveBadge = page.locator(
-      '[class*="border-emerald"], [class*="animate-ping"], text=/EN VIVO|LIVE/i'
-    ).first();
+    // EN VIVO badge: green, pulsing text inside the target card
+    const liveBadge = page.locator('article').first().locator('text=/En vivo|Live/i');
 
     await expect(liveBadge).toBeVisible({ timeout: 10_000 });
   });
 
   test('EN VIVO shows 0-0 score display', async ({ page }) => {
-    const pastKickoffISO = '2026-06-11T15:00:00Z';
+    const pastKickoffISO = '2026-06-11T19:00:00Z';
     await shiftClockToNearKickoff(page, pastKickoffISO, -1);
     await page.reload();
     await openPredictionsTab(page);
 
-    // Should show "0-0" or "0 - 0" for live match
-    const scoreDisplay = page.locator('text=/0\\s*[-–]\\s*0/').first();
+    // Should show "0-0" or "0 - 0" for live match on the target card
+    const scoreDisplay = page.locator('article').first().locator('text=/0\\s*[-–—]\\s*0/');
     await expect(scoreDisplay).toBeVisible({ timeout: 10_000 });
   });
 
   test('Timer stops at 00:00 when match starts', async ({ page }) => {
-    const pastKickoffISO = '2026-06-11T15:00:00Z';
+    const pastKickoffISO = '2026-06-11T19:00:00Z';
     await shiftClockToNearKickoff(page, pastKickoffISO, -1);
     await page.reload();
     await openPredictionsTab(page);
@@ -151,7 +140,7 @@ test.describe('COUNTDOWN — EN VIVO badge at kickoff', () => {
     // Wait a moment for any timer to settle
     await page.waitForTimeout(1_000);
 
-    const timer = page.locator('text=/^\\d{2}:\\d{2}$/').first();
+    const timer = page.locator('article').first().locator('text=/^\\d{2}:\\d{2}$/');
     const timerVisible = await timer.isVisible().catch(() => false);
 
     if (timerVisible) {

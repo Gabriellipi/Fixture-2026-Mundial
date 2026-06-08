@@ -9,7 +9,7 @@ export const SEL = {
   authEmailSubmit:  'button:has-text("email")',
 
   // ── Top navigation ───────────────────────────────────────────────────────────
-  topNav:           'nav[aria-label="Primary"]',
+  topNav:           '[data-testid="nav-inicio"]',
   searchToggle:     'header button[aria-label]',   // search icon button
   languageToggle:   'header button[aria-label*="idioma"], header button[aria-label*="language"], header button[aria-label*="Choose"]',
   userMenuToggle:   'header button[aria-label*="identidad"], header button[aria-label*="identity"], header button[aria-label*="Perfil"]',

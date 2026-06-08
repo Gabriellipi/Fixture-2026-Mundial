@@ -1,17 +1,8 @@
 import { test, expect } from './fixtures/authenticated.js';
 
 async function openPredictionsTab(page) {
-  const btn = page
-    .locator('nav[aria-label="Primary"] button')
-    .filter({ hasText: /predic/i })
-    .first();
-
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click();
-  } else {
-    await page.locator('nav').last().locator('button').filter({ hasText: /predic/i }).first().click();
-  }
-
+  const btn = page.locator('[data-testid="nav-predicciones"]:visible').first();
+  await btn.click();
   await page.waitForSelector('article', { timeout: 10_000 });
 }
 
@@ -128,11 +119,13 @@ test.describe('PREDICTIONS — submit flow', () => {
           body: JSON.stringify([
             {
               id: 'mock-pred-1',
-              match_id: null, // will match first match
-              home_score: 2,
-              away_score: 1,
-              status: 'enviada',
+              fixture_id: 1, // first match ID in app data
+              predicted_home_score: 2,
+              predicted_away_score: 1,
+              status: 'submitted',
               user_id: 'mock-user-id',
+              submitted_at: new Date().toISOString(),
+              locked_at: null,
             },
           ]),
           headers: { 'Content-Type': 'application/json' },

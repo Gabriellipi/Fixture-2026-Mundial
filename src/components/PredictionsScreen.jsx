@@ -43,6 +43,8 @@ function FixtureCountrySelector({ selectedCountry, onSelect }) {
             <button
               key={country.code}
               type="button"
+              data-value={country.code}
+              data-testid={`country-select-${country.code}`}
               onClick={() => onSelect(country.code)}
               className={`shrink-0 rounded-full border px-3 py-2 text-sm transition ${
                 active
@@ -103,6 +105,7 @@ function PredictionsScreen({
   predictions,
   saveStates,
   communityStats = {},
+  focusedMatchId = null,
   onPredictionChange,
   onSaveDraft,
   onReopenPrediction,
@@ -111,8 +114,28 @@ function PredictionsScreen({
   onGoToGroups,
 }) {
   const { language, timeZone, setTimeZone, t } = useAppLocale();
-  const [selectedCountry, setSelectedCountry] = useState(DEFAULT_FIXTURE_COUNTRY);
+  const [selectedCountry, setSelectedCountry] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(FIXTURE_COUNTRY_STORAGE_KEY);
+      return stored || detectFixtureCountry(window.navigator.language);
+    } catch {
+      return DEFAULT_FIXTURE_COUNTRY;
+    }
+  });
   const [rulesOpen, setRulesOpen] = useState(false);
+
+  useEffect(() => {
+    if (!focusedMatchId) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(`prediction-match-${focusedMatchId}`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedMatchId]);
 
   const handleCountrySelect = (code) => {
     setSelectedCountry(code);
@@ -122,9 +145,8 @@ function PredictionsScreen({
   useEffect(() => {
     const storedCountry = window.localStorage.getItem(FIXTURE_COUNTRY_STORAGE_KEY);
     const nextCountry = storedCountry || detectFixtureCountry(window.navigator.language);
-    setSelectedCountry(nextCountry);
     setTimeZone(getCountryTimeZone(nextCountry));
-  }, []);
+  }, [setTimeZone]);
 
   useEffect(() => {
     window.localStorage.setItem(FIXTURE_COUNTRY_STORAGE_KEY, selectedCountry);
@@ -262,8 +284,12 @@ function PredictionsScreen({
 
                 <div className="space-y-3">
                   {group.matches.map((match) => (
-                    <UpcomingMatchCard
+                    <div
                       key={match.id}
+                      id={`prediction-match-${match.id}`}
+                      className={focusedMatchId === match.id ? "rounded-[28px] ring-2 ring-gold-300/50 ring-offset-2 ring-offset-slate-950" : ""}
+                    >
+                    <UpcomingMatchCard
                       match={match}
                       prediction={predictions[match.id]}
                       saveState={saveStates[match.id]}
@@ -275,6 +301,7 @@ function PredictionsScreen({
                       onSubmitPrediction={onSubmitPrediction}
                       onTeamSelect={onTeamSelect}
                     />
+                    </div>
                   ))}
                 </div>
               </div>
