@@ -11,6 +11,8 @@ function ProfilePreferencesCard({
   errorMessage,
   preferredLanguage,
   timeZone,
+  simulationMode,
+  onSimulationModeChange,
 }) {
   const { t, availableLanguages, setLanguage: applyLanguage, isRTL } = useAppLocale();
   const [fullName, setFullName] = useState(
@@ -309,6 +311,37 @@ function ProfilePreferencesCard({
             </div>
           ) : null}
         </form>
+
+        {onSimulationModeChange && (
+          <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/5 p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-yellow-400">⚙ Simulación (dev/admin)</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: "real", label: "Real" },
+                { value: "opening", label: "Apertura (30 min)" },
+                { value: "live", label: "En vivo (partido 1)" },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onSimulationModeChange(value)}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                    simulationMode === value
+                      ? "bg-yellow-400 text-slate-950"
+                      : "border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/10"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-yellow-300/60">
+              {simulationMode === "real" && "Mostrando datos reales"}
+              {simulationMode === "opening" && "Simulando 30 min antes del partido de apertura"}
+              {simulationMode === "live" && "Simulando partido México vs Sudáfrica en vivo (2-1, min 67)"}
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

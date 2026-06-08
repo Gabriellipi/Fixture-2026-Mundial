@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { zonedDateToUtc } from "../utils/dateTime";
 import { useAppLocale } from "../context/AppLocaleContext";
 
-const KICKOFF_TIME = "22:00";
-const KICKOFF_TIME_ZONE = "UTC";
-const KICKOFF = zonedDateToUtc("2026-06-11", KICKOFF_TIME, KICKOFF_TIME_ZONE);
+// Mexico vs South Africa — opening match, 2026-06-11T19:00:00Z
+const KICKOFF = new Date("2026-06-11T19:00:00.000Z");
 
 function pad(n) {
   return String(n).padStart(2, "0");

@@ -1070,6 +1070,8 @@ function App() {
           errorMessage={profileError}
           preferredLanguage={profile?.preferred_language ?? language}
           timeZone={profile?.timezone ?? timeZone}
+          simulationMode={isAdminUser(authUser) || import.meta.env.DEV ? simulationMode : undefined}
+          onSimulationModeChange={isAdminUser(authUser) || import.meta.env.DEV ? setSimulationMode : undefined}
         />
 
         <section className="mt-8">

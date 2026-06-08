@@ -662,9 +662,10 @@ function UpcomingMatchCard({
   const isNearKickoff = remaining > 0 && withinThreshold;
   const isPastKickoffLocally = remaining <= 0;
 
-  const phase = getPredictionPhase(match, prediction);
-  const editable = isPredictionEditable(match, prediction);
-  const canReopen = canReopenPrediction(match, prediction);
+  const effectiveNow = now ? (now instanceof Date ? now : new Date(now)) : new Date();
+  const phase = getPredictionPhase(match, prediction, effectiveNow);
+  const editable = isPredictionEditable(match, prediction, effectiveNow);
+  const canReopen = canReopenPrediction(match, prediction, effectiveNow);
   const lockDeadline = getLockDeadline(match);
   const scheduledAccentClass =
     phase === "submitted"
