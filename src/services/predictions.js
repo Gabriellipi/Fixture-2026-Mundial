@@ -138,7 +138,7 @@ export async function persistPrediction(matchId, prediction, action = "draft") {
   }
 
   if (!prediction.home && !prediction.away) {
-    const { error } = await supabase.from("predictions").delete().eq("fixture_id", matchId);
+    const { error } = await supabase.from("predictions").delete().eq("fixture_id", matchId).eq("user_id", sessionState.user.id);
 
     if (error) {
       throw error;
