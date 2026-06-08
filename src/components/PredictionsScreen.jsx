@@ -63,6 +63,7 @@ function FixtureCountrySelector({ selectedCountry, onSelect }) {
 }
 
 function ProgressPanel({ title, description, percent, submittedCount, draftCount, totalCount }) {
+  const { t } = useAppLocale();
   return (
     <div className="mt-6 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(15,23,42,0.5))] p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -73,7 +74,7 @@ function ProgressPanel({ title, description, percent, submittedCount, draftCount
           <p className="mt-2 text-sm leading-6 text-slate-300">{description}</p>
         </div>
         <div className="rounded-3xl border border-emerald-400/20 bg-black/20 px-4 py-3 text-right">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Progreso</p>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">{t("predictions_progress_label")}</p>
           <p className="mt-1 text-3xl font-black text-white">{percent}%</p>
         </div>
       </div>
@@ -84,18 +85,54 @@ function ProgressPanel({ title, description, percent, submittedCount, draftCount
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-200">Enviadas</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-200">{t("predictions_submitted_label")}</p>
           <p className="mt-1 text-xl font-extrabold text-white">{submittedCount}</p>
         </div>
         <div className="rounded-2xl border border-gold-300/15 bg-gold-300/10 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-gold-200">Borradores</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gold-200">{t("predictions_draft_label")}</p>
           <p className="mt-1 text-xl font-extrabold text-white">{draftCount}</p>
         </div>
         <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:col-span-1">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Total</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{t("predictions_total_label")}</p>
           <p className="mt-1 text-xl font-extrabold text-white">{submittedCount}/{totalCount}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+const ONBOARDING_KEY = "wc2026-predictions-onboarding-dismissed";
+
+function OnboardingCard({ onDismiss }) {
+  const { t } = useAppLocale();
+  const steps = [
+    { icon: "🎯", text: t("onboarding_step1") },
+    { icon: "💾", text: t("onboarding_step2") },
+    { icon: "🔒", text: t("onboarding_step3") },
+  ];
+  return (
+    <div className="mb-6 rounded-[28px] border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,0.10),rgba(15,23,42,0.6))] p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-emerald-300">
+        {t("onboarding_title")}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-white">{t("onboarding_desc")}</p>
+      <div className="mt-4 space-y-3">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm">
+              {step.icon}
+            </span>
+            <p className="mt-0.5 text-sm text-slate-300">{step.text}</p>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="mt-5 w-full rounded-full border border-emerald-400/30 bg-emerald-500 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-950 transition hover:bg-emerald-400"
+      >
+        {t("onboarding_dismiss")}
+      </button>
     </div>
   );
 }
@@ -123,6 +160,20 @@ function PredictionsScreen({
     }
   });
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try {
+      return !window.localStorage.getItem(ONBOARDING_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDismissOnboarding = () => {
+    try {
+      window.localStorage.setItem(ONBOARDING_KEY, "1");
+    } catch {}
+    setShowOnboarding(false);
+  };
 
   useEffect(() => {
     if (!focusedMatchId) {
@@ -303,6 +354,9 @@ function PredictionsScreen({
         />
 
         <div className="mt-4">
+          {showOnboarding && (
+            <OnboardingCard onDismiss={handleDismissOnboarding} />
+          )}
           <FixtureCountrySelector selectedCountry={selectedCountry} onSelect={handleCountrySelect} />
 
           <div className="space-y-6">
