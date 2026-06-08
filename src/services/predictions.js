@@ -51,6 +51,7 @@ export async function loadStoredPredictions() {
   const { data, error } = await supabase
     .from("predictions")
     .select("fixture_id, predicted_home_score, predicted_away_score, status, submitted_at, locked_at")
+    .eq("user_id", sessionState.user.id)
     .order("fixture_id", { ascending: true });
 
   if (error) {
@@ -137,7 +138,7 @@ export async function persistPrediction(matchId, prediction, action = "draft") {
   }
 
   if (!prediction.home && !prediction.away) {
-    const { error } = await supabase.from("predictions").delete().eq("fixture_id", matchId);
+    const { error } = await supabase.from("predictions").delete().eq("fixture_id", matchId).eq("user_id", sessionState.user.id);
 
     if (error) {
       throw error;
