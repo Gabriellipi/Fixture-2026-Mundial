@@ -131,6 +131,44 @@ function PodiumCard({ entry, team, rank, currentUser }) {
   );
 }
 
+function MobilePodiumRow({ entry, team, rank, currentUser }) {
+  const { t } = useAppLocale();
+  const medalColors = ["text-yellow-400", "text-slate-300", "text-orange-400"];
+  const medals = ["🥇", "🥈", "🥉"];
+  return (
+    <div className={`flex items-center gap-2.5 border-b border-white/8 px-2 py-3 last:border-b-0 ${currentUser ? "bg-emerald-500/8" : ""}`}>
+      <span className="w-7 shrink-0 text-center text-base">{medals[rank - 1]}</span>
+      <div className="relative shrink-0">
+        {entry.avatar ? (
+          <img src={entry.avatar} alt={entry.name} className="h-9 w-9 rounded-full border border-white/15 object-cover" />
+        ) : (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs font-black text-white">
+            {team?.flag ? <img src={team.flag} alt="" className="h-full w-full rounded-full object-cover" /> : getAvatarFallback(entry.name)}
+          </div>
+        )}
+        {entry.online && <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-emerald-400" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 truncate text-sm font-bold text-white">
+          <span className="truncate">{entry.name}</span>
+          {currentUser && <span className="shrink-0 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-emerald-400">{t("ranking_you")}</span>}
+        </p>
+        <p className="truncate text-[10px] text-slate-500">{team ? getCountryName(team, t) : entry.favoriteTeam}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="text-right">
+          <p className="text-[9px] uppercase text-slate-500">{t("ranking_pts")}</p>
+          <p className={`text-sm font-black tabular-nums ${medalColors[rank - 1]}`}>{entry.score}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] uppercase text-slate-500">{t("ranking_accuracy_short")}</p>
+          <p className="text-sm font-black tabular-nums text-white">{entry.accuracy}%</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RankingRow({ entry, team, currentUser = false }) {
   const { t } = useAppLocale();
   const movementLabel = entry.movement > 0 ? `+${entry.movement}` : entry.movement;
@@ -171,50 +209,63 @@ function RankingRow({ entry, team, currentUser = false }) {
   );
 }
 
-function RankingCard({ entry, team, currentUser = false }) {
+function CompactRankRow({ entry, team, currentUser = false }) {
   const { t } = useAppLocale();
+  const mov = entry.movement;
+  const movColor = mov > 0 ? "text-emerald-400" : mov < 0 ? "text-red-400" : "text-slate-600";
+  const movLabel = mov > 0 ? `▲${mov}` : mov < 0 ? `▼${Math.abs(mov)}` : "–";
 
   return (
-    <div className={`rounded-[24px] border p-4 ${currentUser ? "border-emerald-400/25 bg-emerald-500/10" : "border-white/10 bg-white/[0.03]"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <UserAvatar entry={entry} team={team} currentUser={currentUser} />
-          <div className="min-w-0">
-            <p className="break-words text-sm font-bold leading-tight text-white">
-              #{entry.rank} {entry.name}
-              {currentUser ? <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-emerald-300">{t("ranking_you")}</span> : null}
-            </p>
-            <p className="mt-1 break-words text-[11px] uppercase tracking-[0.18em] text-slate-400">
-              {team ? getCountryName(team, t) : entry.favoriteTeam}
-            </p>
-            <PredictionCompletionBadge entry={entry} />
-          </div>
-        </div>
+    <div className={`flex items-center gap-2.5 border-b border-white/5 px-2 py-2.5 last:border-b-0 ${currentUser ? "bg-emerald-500/8" : ""}`}>
+      {/* Rank */}
+      <span className="w-6 shrink-0 text-center text-xs font-black tabular-nums text-slate-400">
+        {entry.rank}
+      </span>
 
-        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] ${entry.online ? "border border-emerald-400/20 bg-emerald-500/10 text-emerald-300" : "border border-white/10 bg-white/5 text-slate-400"}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${entry.online ? "bg-emerald-400" : "bg-slate-500"}`} />
-          {entry.online ? t("ranking_status_online") : t("ranking_status_recent")}
-        </span>
+      {/* Avatar small */}
+      <div className="relative shrink-0">
+        {entry.avatar ? (
+          <img src={entry.avatar} alt={entry.name} className="h-8 w-8 rounded-full border border-white/10 object-cover" />
+        ) : (
+          <div className={`flex h-8 w-8 items-center justify-center rounded-full border text-[10px] font-black ${currentUser ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-white"}`}>
+            {team?.flag ? (
+              <img src={team.flag} alt={entry.name} className="h-full w-full rounded-full object-cover" />
+            ) : (
+              getAvatarFallback(entry.name)
+            )}
+          </div>
+        )}
+        {entry.online && (
+          <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-950 bg-emerald-400" />
+        )}
       </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_pts")}</p>
-          <p className="mt-1 text-lg font-black text-white">{entry.score}</p>
+      {/* Name + team */}
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 truncate text-sm font-bold leading-tight text-white">
+          <span className="truncate">{entry.name}</span>
+          {currentUser && (
+            <span className="shrink-0 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-400">
+              {t("ranking_you")}
+            </span>
+          )}
+        </p>
+        <p className="truncate text-[10px] text-slate-500">{team ? getCountryName(team, t) : entry.favoriteTeam}</p>
+      </div>
+
+      {/* Stats block */}
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="text-right">
+          <p className="text-[9px] uppercase tracking-[0.1em] text-slate-500">{t("ranking_pts")}</p>
+          <p className="text-sm font-black tabular-nums text-white">{entry.score}</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_accuracy_short")}</p>
-          <p className="mt-1 text-lg font-black text-white">{entry.accuracy}%</p>
+        <div className="text-right">
+          <p className="text-[9px] uppercase tracking-[0.1em] text-slate-500">{t("ranking_accuracy_short")}</p>
+          <p className="text-sm font-black tabular-nums text-white">{entry.accuracy}%</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_exact_short")}</p>
-          <p className="mt-1 text-lg font-black text-white">{entry.exact}</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-2.5 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-slate-500">{t("ranking_move_short")}</p>
-          <p className={`mt-1 text-lg font-black ${entry.movement > 0 ? "text-emerald-300" : entry.movement < 0 ? "text-red-200" : "text-white"}`}>
-            {entry.movement > 0 ? `+${entry.movement}` : entry.movement}
-          </p>
+        <div className="w-6 text-right">
+          <p className="text-[9px] uppercase tracking-[0.1em] text-slate-500">{t("ranking_move_short")}</p>
+          <p className={`text-xs font-black tabular-nums ${movColor}`}>{movLabel}</p>
         </div>
       </div>
     </div>
@@ -372,9 +423,23 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
 
         <div className="mt-6 grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
           <div className="min-w-0 space-y-4">
-            <div className="grid gap-4 lg:grid-cols-3">
+            {/* Desktop podium */}
+            <div className="hidden grid-cols-3 gap-4 lg:grid">
               {topThree.map((entry, index) => (
                 <PodiumCard
+                  key={entry.id}
+                  entry={entry}
+                  team={teamMap[entry.favoriteTeam] ?? null}
+                  rank={index + 1}
+                  currentUser={Boolean(entry.isCurrentUser)}
+                />
+              ))}
+            </div>
+
+            {/* Mobile podium — compact rows */}
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.03] lg:hidden">
+              {topThree.map((entry, index) => (
+                <MobilePodiumRow
                   key={entry.id}
                   entry={entry}
                   team={teamMap[entry.favoriteTeam] ?? null}
@@ -431,9 +496,10 @@ function RankingScreen({ matches, predictions, groups, currentUser }) {
                 </div>
               </div>
 
-              <div className="mt-4 space-y-3 lg:hidden">
+              {/* Mobile compact table */}
+              <div className="mt-2 rounded-[24px] border border-white/10 bg-white/[0.02] lg:hidden">
                 {filteredEntries.map((entry) => (
-                  <RankingCard key={entry.id} entry={entry} team={teamMap[entry.favoriteTeam] ?? null} currentUser={Boolean(entry.isCurrentUser)} />
+                  <CompactRankRow key={entry.id} entry={entry} team={teamMap[entry.favoriteTeam] ?? null} currentUser={Boolean(entry.isCurrentUser)} />
                 ))}
               </div>
             </div>
