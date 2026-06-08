@@ -219,21 +219,21 @@ function AuthScreen({
                 ) : null}
 
                 <p className="pt-2 text-center text-xs text-slate-500">
-                  Al continuar aceptas nuestros{" "}
+                  {t("auth_terms_prefix")}{" "}
                   <button
                     type="button"
                     onClick={() => onShowTerms?.()}
                     className="underline underline-offset-2 transition hover:text-slate-300"
                   >
-                    Términos y Condiciones
+                    {t("auth_terms_link")}
                   </button>{" "}
-                  y{" "}
+                  {t("auth_terms_and")}{" "}
                   <button
                     type="button"
                     onClick={() => onShowPrivacy?.()}
                     className="underline underline-offset-2 transition hover:text-slate-300"
                   >
-                    Política de Privacidad
+                    {t("auth_privacy_link")}
                   </button>
                   .
                 </p>

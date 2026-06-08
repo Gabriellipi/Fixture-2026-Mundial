@@ -233,6 +233,17 @@ function App() {
   const predictionsRef = useRef(predictions);
   useEffect(() => { predictionsRef.current = predictions; });
 
+  const pendingPredictionsCount = useMemo(() => {
+    const now = clockNow;
+    return upcomingMatches.filter((match) => {
+      const prediction = predictions[match.id];
+      if (prediction?.status === "submitted") return false;
+      const lockDeadline = new Date(new Date(match.kickoffUtc || match.dateIso).getTime() - 60 * 60 * 1000);
+      if (now >= lockDeadline) return false;
+      return !prediction?.home && !prediction?.away;
+    }).length;
+  }, [predictions, clockNow]);
+
   const ensureProfileRow = async (nextUser, existingProfile = null) => {
     if (!isRealAuthenticatedUser(nextUser)) {
       return existingProfile;
@@ -1272,7 +1283,7 @@ function App() {
         {currentScreen}
       </main>
 
-      <BottomNav activeTab={activeTab} onChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onChange={setActiveTab} pendingCount={pendingPredictionsCount} />
 
       {legalScreen === "privacy" && <PrivacyPolicyScreen onClose={() => setLegalScreen(null)} />}
       {legalScreen === "terms" && <TermsScreen onClose={() => setLegalScreen(null)} />}
