@@ -9,7 +9,9 @@ const LIVE_STATUSES = new Set(["1H", "2H", "HT", "ET", "BT", "P", "LIVE"]);
 const UPCOMING_STATUSES = new Set(["NS", "TBD"]);
 const POLL_INTERVAL_MS = 60_000;
 const COUNTDOWN_THRESHOLD_MS = 60 * 60 * 1000;
-const API_KEY_PRESENT = Boolean(import.meta.env.VITE_API_SPORTS_KEY);
+const API_KEY_PRESENT =
+  Boolean(import.meta.env.VITE_API_SPORTS_KEY) ||
+  Boolean(import.meta.env.VITE_MATCH_CENTER_API_BASE_URL);
 
 function getTodayKey(timeZone) {
   try {
