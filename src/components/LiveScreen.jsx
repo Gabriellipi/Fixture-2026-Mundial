@@ -7,9 +7,12 @@ import { upcomingMatches } from "../data/worldCup2026";
 
 const LIVE_STATUSES = new Set(["1H", "2H", "HT", "ET", "BT", "P", "LIVE"]);
 const UPCOMING_STATUSES = new Set(["NS", "TBD"]);
+const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
 const POLL_INTERVAL_MS = 60_000;
 const COUNTDOWN_THRESHOLD_MS = 60 * 60 * 1000;
-const API_KEY_PRESENT = Boolean(import.meta.env.VITE_API_SPORTS_KEY);
+const OFFICIAL_DATA_ENABLED = Boolean(
+  import.meta.env.VITE_API_SPORTS_KEY || import.meta.env.VITE_MATCH_CENTER_API_BASE_URL,
+);
 
 function getTodayKey(timeZone) {
   try {
@@ -34,15 +37,11 @@ function getCompetitionLabel(round, name, t) {
 }
 
 function parseStatValue(value) {
-  if (typeof value === "number") {
-    return value;
-  }
-
+  if (typeof value === "number") return value;
   if (typeof value === "string") {
     const parsed = Number.parseInt(value.replace("%", ""), 10);
     return Number.isNaN(parsed) ? 0 : parsed;
   }
-
   return 0;
 }
 
@@ -82,8 +81,8 @@ function normalizeFixture(fixture, t) {
       crest: fixture.teams?.away?.logo ?? "",
     },
     score: {
-      home: fixture.goals?.home ?? 0,
-      away: fixture.goals?.away ?? 0,
+      home: fixture.goals?.home ?? fixture.score?.fulltime?.home ?? 0,
+      away: fixture.goals?.away ?? fixture.score?.fulltime?.away ?? 0,
     },
     stats: mapStatistics(fixture.statistics),
   };
@@ -94,19 +93,14 @@ function buildOfficialTodayMatches(timeZone, t) {
 
   return upcomingMatches
     .filter((match) => {
-      if (!match.kickoffUtc) {
-        return false;
-      }
-
+      if (!match.kickoffUtc) return false;
       try {
-        return (
-          new Intl.DateTimeFormat("en-CA", {
-            timeZone,
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(new Date(match.kickoffUtc)) === todayKey
-        );
+        return new Intl.DateTimeFormat("en-CA", {
+          timeZone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(match.kickoffUtc)) === todayKey;
       } catch {
         return match.kickoffUtc.slice(0, 10) === todayKey;
       }
@@ -127,10 +121,7 @@ function buildOfficialTodayMatches(timeZone, t) {
         name: match.awayTeam?.aliases?.[0] ?? match.awayTeam?.name ?? t("live_fallback_away"),
         crest: match.awayTeam?.flag ?? "",
       },
-      score: {
-        home: 0,
-        away: 0,
-      },
+      score: { home: 0, away: 0 },
       stats: {
         possession: { home: 0, away: 0 },
         shots: { home: 0, away: 0 },
@@ -148,7 +139,6 @@ function getEventTone(type, t) {
       badgeClass: "bg-yellow-500/12 text-yellow-100 border border-yellow-400/20",
     };
   }
-
   if (type === "red-card") {
     return {
       icon: SquareStack,
@@ -157,7 +147,6 @@ function getEventTone(type, t) {
       badgeClass: "bg-red-500/12 text-red-100 border border-red-400/20",
     };
   }
-
   if (type === "substitution") {
     return {
       icon: ArrowRightLeft,
@@ -166,7 +155,6 @@ function getEventTone(type, t) {
       badgeClass: "bg-sky-500/12 text-sky-100 border border-sky-400/20",
     };
   }
-
   if (type === "penalty") {
     return {
       icon: ShieldAlert,
@@ -175,7 +163,6 @@ function getEventTone(type, t) {
       badgeClass: "bg-fuchsia-500/12 text-fuchsia-100 border border-fuchsia-400/20",
     };
   }
-
   if (type === "var") {
     return {
       icon: TimerReset,
@@ -184,7 +171,6 @@ function getEventTone(type, t) {
       badgeClass: "bg-amber-500/12 text-amber-100 border border-amber-400/20",
     };
   }
-
   return {
     icon: Goal,
     label: t("live_event_goal"),
@@ -317,14 +303,23 @@ function LiveMinute({ minute, status }) {
   );
 }
 
+function FinishedMinute() {
+  const { t } = useAppLocale();
+  return (
+    <div className="flex flex-col items-center gap-1 text-center">
+      <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300">
+        {t("match_finished")}
+      </span>
+    </div>
+  );
+}
+
 function Countdown({ kickoff, language, timeZone }) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     const remaining = kickoff.getTime() - Date.now();
-    if (remaining > COUNTDOWN_THRESHOLD_MS || remaining <= 0) {
-      return undefined;
-    }
+    if (remaining > COUNTDOWN_THRESHOLD_MS || remaining <= 0) return undefined;
 
     const intervalId = window.setInterval(() => {
       setNow(Date.now());
@@ -377,7 +372,8 @@ function LiveMatchRow({ match }) {
         events: matchData.events ?? [],
       }
     : match;
-  const leftBorder = resolvedMatch.status === "HT" ? "border-l-amber-400" : "border-l-red-500";
+  const isFinished = FINISHED_STATUSES.has(resolvedMatch.status);
+  const leftBorder = isFinished ? "border-l-slate-500" : resolvedMatch.status === "HT" ? "border-l-amber-400" : "border-l-red-500";
 
   return (
     <article className={`overflow-hidden rounded-[24px] border border-white/8 border-l-4 ${leftBorder} bg-slate-900/80 shadow-[0_16px_40px_rgba(2,6,23,0.32)]`}>
@@ -388,7 +384,7 @@ function LiveMatchRow({ match }) {
         aria-expanded={expanded}
       >
         <div className="flex items-center justify-between gap-3 sm:min-w-[5.5rem] sm:justify-center">
-          <LiveMinute minute={resolvedMatch.minute} status={resolvedMatch.status} />
+          {isFinished ? <FinishedMinute /> : <LiveMinute minute={resolvedMatch.minute} status={resolvedMatch.status} />}
           <CompetitionBadge label={resolvedMatch.competition} />
         </div>
 
@@ -453,9 +449,7 @@ function LiveScreen({ isActive = false }) {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
-    if (!isActive) {
-      return undefined;
-    }
+    if (!isActive) return undefined;
 
     let cancelled = false;
 
@@ -465,28 +459,29 @@ function LiveScreen({ isActive = false }) {
       try {
         const today = getTodayKey(timeZone);
         const officialTodayMatches = buildOfficialTodayMatches(timeZone, t);
-        const [liveResponse, todayResponse] = API_KEY_PRESENT
+        const [liveResponse, todayResponse] = OFFICIAL_DATA_ENABLED
           ? await Promise.all([
               getLiveWorldCupFixtures({ season: 2026 }),
               getWorldCupFixturesByDate({ season: 2026, date: today }),
             ])
           : [{ response: [] }, { response: [] }];
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         const normalizedLive = (liveResponse.response ?? [])
           .filter((fixture) => LIVE_STATUSES.has(fixture.fixture?.status?.short ?? ""))
           .map((f) => normalizeFixture(f, t));
 
         const normalizedToday = (todayResponse.response ?? [])
-          .filter((fixture) => UPCOMING_STATUSES.has(fixture.fixture?.status?.short ?? ""))
           .map((f) => normalizeFixture(f, t))
           .sort((a, b) => (a.kickoff?.getTime() ?? Infinity) - (b.kickoff?.getTime() ?? Infinity));
 
-        setLiveMatches(normalizedLive);
-        setTodayMatches(normalizedToday.length > 0 ? normalizedToday : officialTodayMatches);
+        const activeFromToday = normalizedToday.filter((fixture) => LIVE_STATUSES.has(fixture.status));
+        const mergedLive = normalizedLive.length > 0 ? normalizedLive : activeFromToday;
+        const visibleToday = normalizedToday.length > 0 ? normalizedToday : officialTodayMatches;
+
+        setLiveMatches(mergedLive);
+        setTodayMatches(visibleToday);
         setLastUpdated(new Date());
       } catch {
         if (!cancelled) {
@@ -495,9 +490,7 @@ function LiveScreen({ isActive = false }) {
           setLastUpdated(new Date());
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -508,7 +501,7 @@ function LiveScreen({ isActive = false }) {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [isActive, timeZone]);
+  }, [isActive, timeZone, t]);
 
   const emptyLiveState = liveMatches.length === 0;
   const visibleTodayMatches = useMemo(() => todayMatches, [todayMatches]);
@@ -572,7 +565,11 @@ function LiveScreen({ isActive = false }) {
           <div className="space-y-3">
             <div className="panel p-5 text-sm text-slate-300">{t("live_empty")}</div>
             {visibleTodayMatches.map((match) => (
-              <UpcomingMatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
+              UPCOMING_STATUSES.has(match.status) ? (
+                <UpcomingMatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
+              ) : (
+                <LiveMatchRow key={match.id} match={match} />
+              )
             ))}
           </div>
         ) : (
@@ -585,7 +582,11 @@ function LiveScreen({ isActive = false }) {
       ) : visibleTodayMatches.length > 0 ? (
         <div className="space-y-3">
           {visibleTodayMatches.map((match) => (
-            <UpcomingMatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
+            UPCOMING_STATUSES.has(match.status) ? (
+              <UpcomingMatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
+            ) : (
+              <LiveMatchRow key={match.id} match={match} />
+            )
           ))}
         </div>
       ) : (
