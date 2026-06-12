@@ -5,7 +5,6 @@ import {
   isInternalMatchCenterEnabled,
 } from "../services/matchCenterApi";
 
-// Polling interval (ms) — only active when a match is LIVE or HT.
 const POLL_INTERVAL = 60_000;
 
 function normalizeStatus(shortStatus) {
@@ -27,7 +26,7 @@ function normalizeStatus(shortStatus) {
     return "FINISHED";
   }
 
-  if (shortStatus === "PEN") {
+  if (shortStatus === "PEN" || shortStatus === "P") {
     return "PEN";
   }
 
@@ -59,6 +58,34 @@ function normalizeEventType(event) {
   }
 
   return "goal";
+}
+
+function shouldKeepPolling(matchData) {
+  const status = normalizeStatus(matchData?.status ?? matchData?.rawStatus);
+
+  if (status === "FINISHED") {
+    return false;
+  }
+
+  if (status === "LIVE" || status === "HT" || status === "PEN") {
+    return true;
+  }
+
+  const kickoff = matchData?.kickoff ?? matchData?.kickoffUtc ?? matchData?.fixture?.date;
+  if (!kickoff) {
+    return true;
+  }
+
+  const kickoffMs = kickoff instanceof Date ? kickoff.getTime() : new Date(kickoff).getTime();
+  if (!Number.isFinite(kickoffMs)) {
+    return true;
+  }
+
+  const now = Date.now();
+  const startsSoon = now >= kickoffMs - 30 * 60_000;
+  const stillRelevant = now <= kickoffMs + 4 * 60 * 60_000;
+
+  return startsSoon && stillRelevant;
 }
 
 export async function fetchMatchStatus(matchId) {
@@ -149,7 +176,7 @@ export async function fetchMatchStatus(matchId) {
 
     return {
       status: normalizeStatus(fix.fixture.status.short),
-      rawStatus: fix.fixture.status.short, // NS | 1H | HT | 2H | FT | AET | PEN
+      rawStatus: fix.fixture.status.short,
       minute: fix.fixture.status.elapsed ?? null,
       score: {
         home: fix.goals.home ?? 0,
@@ -195,10 +222,11 @@ export function useMatchStatus(matchId, initialData = null) {
   }, [initialData]);
 
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId) return undefined;
 
     let cancelled = false;
-    const runInitialFetch = async () => {
+
+    const refresh = async () => {
       const updated = await fetchMatchStatus(matchId);
       if (!cancelled && updated) {
         setMatchData((current) => ({
@@ -208,28 +236,21 @@ export function useMatchStatus(matchId, initialData = null) {
       }
     };
 
-    runInitialFetch();
+    refresh();
 
-    const isActive =
-      matchData?.status === "LIVE" ||
-      matchData?.status === "HT";
-
-    if (!isActive) {
+    if (!shouldKeepPolling(matchData ?? initialData)) {
       return () => {
         cancelled = true;
       };
     }
 
-    const id = setInterval(async () => {
-      const updated = await fetchMatchStatus(matchId);
-      if (!cancelled && updated) setMatchData(updated);
-    }, POLL_INTERVAL);
+    const id = window.setInterval(refresh, POLL_INTERVAL);
 
     return () => {
       cancelled = true;
-      clearInterval(id);
+      window.clearInterval(id);
     };
-  }, [matchId, matchData?.status]);
+  }, [matchId, matchData?.status, initialData]);
 
   const status = normalizeStatus(matchData?.status);
   const isLive = status === "LIVE";
