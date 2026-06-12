@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRightLeft, ChevronDown, Goal, Radio, ShieldAlert, SquareStack, TimerReset } from "lucide-react";
+import { ChevronDown, Goal, Radio } from "lucide-react";
 import { useAppLocale } from "../context/AppLocaleContext";
 import { getLiveWorldCupFixtures, getWorldCupFixturesByDate } from "../services/apiSports";
 import { useMatchStatus } from "../hooks/useMatchStatus";
@@ -7,12 +7,9 @@ import { upcomingMatches } from "../data/worldCup2026";
 
 const LIVE_STATUSES = new Set(["1H", "2H", "HT", "ET", "BT", "P", "LIVE"]);
 const UPCOMING_STATUSES = new Set(["NS", "TBD"]);
-const FINISHED_STATUSES = new Set(["FT", "AET", "PEN"]);
+const FINISHED_STATUSES = new Set(["FT", "AET", "PEN", "FINISHED"]);
 const POLL_INTERVAL_MS = 60_000;
 const COUNTDOWN_THRESHOLD_MS = 60 * 60 * 1000;
-const OFFICIAL_DATA_ENABLED = Boolean(
-  import.meta.env.VITE_API_SPORTS_KEY || import.meta.env.VITE_MATCH_CENTER_API_BASE_URL,
-);
 
 function getTodayKey(timeZone) {
   try {
@@ -29,10 +26,11 @@ function getTodayKey(timeZone) {
 
 function getCompetitionLabel(round, name, t) {
   if (round) {
-    const grpMatch = round.match(/Group Stage - (.+)/);
-    if (grpMatch) return t("live_group_label", { id: grpMatch[1] });
+    const groupMatch = round.match(/Group Stage - (.+)/);
+    if (groupMatch) return t("live_group_label", { id: groupMatch[1] });
     return round;
   }
+
   return name ?? "Mundial 2026";
 }
 
@@ -85,10 +83,11 @@ function normalizeFixture(fixture, t) {
       away: fixture.goals?.away ?? fixture.score?.fulltime?.away ?? 0,
     },
     stats: mapStatistics(fixture.statistics),
+    events: [],
   };
 }
 
-function buildOfficialTodayMatches(timeZone, t) {
+function buildLocalTodayMatches(timeZone, t) {
   const todayKey = getTodayKey(timeZone);
 
   return upcomingMatches
@@ -105,7 +104,6 @@ function buildOfficialTodayMatches(timeZone, t) {
         return match.kickoffUtc.slice(0, 10) === todayKey;
       }
     })
-    .sort((a, b) => new Date(a.kickoffUtc) - new Date(b.kickoffUtc))
     .map((match) => ({
       id: String(match.id),
       fixtureId: null,
@@ -127,56 +125,32 @@ function buildOfficialTodayMatches(timeZone, t) {
         shots: { home: 0, away: 0 },
         totalShots: { home: 0, away: 0 },
       },
-    }));
+      events: [],
+    }))
+    .sort((a, b) => (a.kickoff?.getTime() ?? Infinity) - (b.kickoff?.getTime() ?? Infinity));
 }
 
-function getEventTone(type, t) {
-  if (type === "yellow-card") {
-    return {
-      icon: SquareStack,
-      label: t("live_event_yellow_card"),
-      iconClass: "text-yellow-300",
-      badgeClass: "bg-yellow-500/12 text-yellow-100 border border-yellow-400/20",
-    };
-  }
-  if (type === "red-card") {
-    return {
-      icon: SquareStack,
-      label: t("live_event_red_card"),
-      iconClass: "text-red-300",
-      badgeClass: "bg-red-500/12 text-red-100 border border-red-400/20",
-    };
-  }
-  if (type === "substitution") {
-    return {
-      icon: ArrowRightLeft,
-      label: t("live_event_substitution"),
-      iconClass: "text-sky-300",
-      badgeClass: "bg-sky-500/12 text-sky-100 border border-sky-400/20",
-    };
-  }
-  if (type === "penalty") {
-    return {
-      icon: ShieldAlert,
-      label: t("live_event_penalty"),
-      iconClass: "text-fuchsia-300",
-      badgeClass: "bg-fuchsia-500/12 text-fuchsia-100 border border-fuchsia-400/20",
-    };
-  }
-  if (type === "var") {
-    return {
-      icon: TimerReset,
-      label: t("live_event_var"),
-      iconClass: "text-amber-200",
-      badgeClass: "bg-amber-500/12 text-amber-100 border border-amber-400/20",
-    };
-  }
-  return {
-    icon: Goal,
-    label: t("live_event_goal"),
-    iconClass: "text-emerald-300",
-    badgeClass: "bg-emerald-500/12 text-emerald-200 border border-emerald-400/20",
-  };
+function normalizeName(name = "") {
+  return String(name)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+}
+
+function getMatchKey(match) {
+  const date = match.kickoff ? match.kickoff.toISOString().slice(0, 10) : "";
+  return `${date}-${normalizeName(match.homeTeam?.name)}-${normalizeName(match.awayTeam?.name)}`;
+}
+
+function mergeTodayMatches(localMatches, officialMatches) {
+  const byKey = new Map(localMatches.map((match) => [getMatchKey(match), match]));
+
+  officialMatches.forEach((match) => {
+    byKey.set(getMatchKey(match), { ...byKey.get(getMatchKey(match)), ...match });
+  });
+
+  return [...byKey.values()].sort((a, b) => (a.kickoff?.getTime() ?? Infinity) - (b.kickoff?.getTime() ?? Infinity));
 }
 
 function TeamCell({ team, reverse = false }) {
@@ -204,114 +178,29 @@ function CompetitionBadge({ label }) {
   );
 }
 
-function StatBar({ label, home, away, suffix = "" }) {
-  const total = Math.max(home + away, 1);
-  const homeWidth = Math.max(8, Math.round((home / total) * 100));
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-[11px] text-slate-400">
-        <span className="font-semibold text-white">{home}{suffix}</span>
-        <span className="uppercase tracking-[0.18em]">{label}</span>
-        <span className="font-semibold text-white">{away}{suffix}</span>
-      </div>
-      <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
-        <div className="rounded-full bg-emerald-400/75" style={{ width: `${homeWidth}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function InlineStats({ stats, t }) {
-  return (
-    <div className="space-y-3 border-t border-white/8 px-4 py-4">
-      <StatBar label={t("live_stat_possession")} home={stats.possession.home} away={stats.possession.away} suffix="%" />
-      <StatBar label={t("live_stat_shots")} home={stats.shots.home} away={stats.shots.away} />
-      <StatBar label={t("live_stat_total_shots")} home={stats.totalShots.home} away={stats.totalShots.away} />
-    </div>
-  );
-}
-
-function IncidentList({ events, homeTeamName, awayTeamName, t }) {
-  if (!events?.length) {
-    return (
-      <div className="border-t border-white/8 px-4 py-4">
-        <p className="text-sm text-slate-500">{t("live_no_incidents")}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2 border-t border-white/8 px-4 py-4">
-      {events
-        .slice()
-        .sort((a, b) => (b.minute ?? 0) - (a.minute ?? 0))
-        .map((event) => {
-          const tone = getEventTone(event.type, t);
-          const Icon = tone.icon;
-          const teamName = event.team === "home" ? homeTeamName : awayTeamName;
-
-          return (
-            <div
-              key={event.id ?? `${event.type}-${event.minute}-${event.player}`}
-              className="flex items-start gap-3 rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-3"
-            >
-              <div className="flex w-10 shrink-0 flex-col items-center">
-                <span className="font-display text-lg font-bold tabular-nums text-white">
-                  {event.minute ?? "?"}'
-                </span>
-              </div>
-
-              <div className={`mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone.badgeClass}`}>
-                <Icon size={15} className={tone.iconClass} />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-white">{event.player ?? teamName}</p>
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{teamName}</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-300">
-                  {tone.label}
-                  {event.detail ? ` · ${event.detail}` : ""}
-                </p>
-                {event.assist ? (
-                  <p className="mt-1 text-[11px] text-slate-400">{t("live_assist")}: <span className="text-slate-200">{event.assist}</span></p>
-                ) : null}
-                {event.playerOut ? (
-                  <p className="mt-1 text-[11px] text-slate-400">{t("live_player_out")}: <span className="text-slate-200">{event.playerOut}</span></p>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-    </div>
-  );
-}
-
-function LiveMinute({ minute, status }) {
-  const label = status === "HT" ? "HT" : `${minute ?? 0}'`;
-
-  return (
-    <div className="flex flex-col items-center gap-1 text-center">
-      <span className="flex items-center gap-1 rounded-full border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-red-300">
-        <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-red-500" />
-        LIVE
-      </span>
-      <span className="text-sm font-semibold text-white">{label}</span>
-    </div>
-  );
-}
-
-function FinishedMinute() {
+function StatusBadge({ match }) {
   const { t } = useAppLocale();
-  return (
-    <div className="flex flex-col items-center gap-1 text-center">
+  const isLive = LIVE_STATUSES.has(match.status);
+  const isFinished = FINISHED_STATUSES.has(match.status);
+
+  if (isFinished) {
+    return (
       <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-300">
         {t("match_finished")}
       </span>
-    </div>
-  );
+    );
+  }
+
+  if (isLive) {
+    return (
+      <span className="flex items-center gap-1 rounded-full border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-red-300">
+        <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-red-500" />
+        {match.status === "HT" ? "HT" : `${match.minute ?? 0}'`}
+      </span>
+    );
+  }
+
+  return null;
 }
 
 function Countdown({ kickoff, language, timeZone }) {
@@ -321,10 +210,7 @@ function Countdown({ kickoff, language, timeZone }) {
     const remaining = kickoff.getTime() - Date.now();
     if (remaining > COUNTDOWN_THRESHOLD_MS || remaining <= 0) return undefined;
 
-    const intervalId = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(intervalId);
   }, [kickoff]);
 
@@ -343,18 +229,43 @@ function Countdown({ kickoff, language, timeZone }) {
 
   return (
     <span className="text-sm font-semibold text-slate-200">
-      {new Intl.DateTimeFormat(language, {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone,
-      }).format(kickoff)}
+      {new Intl.DateTimeFormat(language, { hour: "2-digit", minute: "2-digit", timeZone }).format(kickoff)}
     </span>
   );
 }
 
-function LiveMatchRow({ match }) {
-  const [expanded, setExpanded] = useState(false);
+function StatBar({ label, home, away, suffix = "" }) {
+  const total = Math.max(home + away, 1);
+  const homeWidth = Math.max(8, Math.round((home / total) * 100));
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-[11px] text-slate-400">
+        <span className="font-semibold text-white">{home}{suffix}</span>
+        <span className="uppercase tracking-[0.18em]">{label}</span>
+        <span className="font-semibold text-white">{away}{suffix}</span>
+      </div>
+      <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="rounded-full bg-emerald-400/75" style={{ width: `${homeWidth}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function InlineStats({ stats }) {
   const { t } = useAppLocale();
+
+  return (
+    <div className="space-y-3 border-t border-white/8 px-4 py-4">
+      <StatBar label={t("live_stat_possession")} home={stats.possession.home} away={stats.possession.away} suffix="%" />
+      <StatBar label={t("live_stat_shots")} home={stats.shots.home} away={stats.shots.away} />
+      <StatBar label={t("live_stat_total_shots")} home={stats.totalShots.home} away={stats.totalShots.away} />
+    </div>
+  );
+}
+
+function MatchRow({ match, language, timeZone }) {
+  const [expanded, setExpanded] = useState(false);
   const { matchData } = useMatchStatus(match.fixtureId, match);
   const resolvedMatch = matchData
     ? {
@@ -372,8 +283,10 @@ function LiveMatchRow({ match }) {
         events: matchData.events ?? [],
       }
     : match;
+  const isUpcoming = UPCOMING_STATUSES.has(resolvedMatch.status);
   const isFinished = FINISHED_STATUSES.has(resolvedMatch.status);
-  const leftBorder = isFinished ? "border-l-slate-500" : resolvedMatch.status === "HT" ? "border-l-amber-400" : "border-l-red-500";
+  const isLive = LIVE_STATUSES.has(resolvedMatch.status);
+  const leftBorder = isFinished ? "border-l-slate-500" : isLive ? "border-l-red-500" : "border-l-emerald-400/55";
 
   return (
     <article className={`overflow-hidden rounded-[24px] border border-white/8 border-l-4 ${leftBorder} bg-slate-900/80 shadow-[0_16px_40px_rgba(2,6,23,0.32)]`}>
@@ -383,59 +296,47 @@ function LiveMatchRow({ match }) {
         className="flex w-full flex-col gap-3 px-4 py-4 text-left sm:flex-row sm:items-center"
         aria-expanded={expanded}
       >
-        <div className="flex items-center justify-between gap-3 sm:min-w-[5.5rem] sm:justify-center">
-          {isFinished ? <FinishedMinute /> : <LiveMinute minute={resolvedMatch.minute} status={resolvedMatch.status} />}
+        <div className="flex items-center justify-between gap-3 sm:min-w-[5.5rem] sm:flex-col sm:items-start">
+          {isUpcoming && resolvedMatch.kickoff ? (
+            <Countdown kickoff={resolvedMatch.kickoff} language={language} timeZone={timeZone} />
+          ) : (
+            <StatusBadge match={resolvedMatch} />
+          )}
           <CompetitionBadge label={resolvedMatch.competition} />
         </div>
 
         <div className="grid flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
           <TeamCell team={resolvedMatch.homeTeam} />
           <div className="text-center">
-            <div className="font-display text-2xl font-bold text-white">
-              {resolvedMatch.score.home} - {resolvedMatch.score.away}
-            </div>
+            {isUpcoming ? (
+              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">vs</div>
+            ) : (
+              <div className="font-display text-2xl font-bold text-white">
+                {resolvedMatch.score.home} - {resolvedMatch.score.away}
+              </div>
+            )}
           </div>
           <TeamCell team={resolvedMatch.awayTeam} reverse />
         </div>
 
-        <div className="flex items-center justify-end">
-          <ChevronDown
-            size={16}
-            className={`text-slate-500 transition-transform ${expanded ? "rotate-180" : ""}`}
-          />
-        </div>
+        <ChevronDown size={16} className={`ml-auto text-slate-500 transition-transform ${expanded ? "rotate-180" : ""}`} />
       </button>
 
-      {expanded ? (
+      {expanded && !isUpcoming ? (
         <>
-          <InlineStats stats={resolvedMatch.stats} t={t} />
-          <IncidentList
-            events={resolvedMatch.events ?? []}
-            homeTeamName={resolvedMatch.homeTeam.name}
-            awayTeamName={resolvedMatch.awayTeam.name}
-            t={t}
-          />
+          <InlineStats stats={resolvedMatch.stats} />
+          {resolvedMatch.events?.length ? (
+            <div className="space-y-2 border-t border-white/8 px-4 py-4">
+              {resolvedMatch.events.map((event) => (
+                <div key={event.id ?? `${event.type}-${event.minute}-${event.player}`} className="flex items-center gap-3 rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-3">
+                  <Goal size={15} className="text-emerald-300" />
+                  <span className="text-sm font-semibold text-white">{event.minute ?? "?"}' {event.player ?? event.detail ?? "Gol"}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </>
       ) : null}
-    </article>
-  );
-}
-
-function UpcomingMatchRow({ match, language, timeZone }) {
-  return (
-    <article className="rounded-[24px] border border-white/8 border-l-4 border-l-emerald-400/55 bg-slate-900/75 px-4 py-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center justify-between gap-3 sm:min-w-[5.5rem] sm:flex-col sm:items-start">
-          {match.kickoff ? <Countdown kickoff={match.kickoff} language={language} timeZone={timeZone} /> : <span className="text-sm text-slate-200">--:--</span>}
-          <CompetitionBadge label={match.competition} />
-        </div>
-
-        <div className="grid flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <TeamCell team={match.homeTeam} />
-          <div className="text-center text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">vs</div>
-          <TeamCell team={match.awayTeam} reverse />
-        </div>
-      </div>
     </article>
   );
 }
@@ -444,7 +345,7 @@ function LiveScreen({ isActive = false }) {
   const { t, language, timeZone } = useAppLocale();
   const [activeSubTab, setActiveSubTab] = useState("live");
   const [liveMatches, setLiveMatches] = useState([]);
-  const [todayMatches, setTodayMatches] = useState(() => buildOfficialTodayMatches(timeZone, t));
+  const [todayMatches, setTodayMatches] = useState(() => buildLocalTodayMatches(timeZone, t));
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
@@ -458,35 +359,27 @@ function LiveScreen({ isActive = false }) {
 
       try {
         const today = getTodayKey(timeZone);
-        const officialTodayMatches = buildOfficialTodayMatches(timeZone, t);
-        const [liveResponse, todayResponse] = OFFICIAL_DATA_ENABLED
-          ? await Promise.all([
-              getLiveWorldCupFixtures({ season: 2026 }),
-              getWorldCupFixturesByDate({ season: 2026, date: today }),
-            ])
-          : [{ response: [] }, { response: [] }];
+        const localTodayMatches = buildLocalTodayMatches(timeZone, t);
+        const [liveResponse, todayResponse] = await Promise.all([
+          getLiveWorldCupFixtures({ season: 2026 }),
+          getWorldCupFixturesByDate({ season: 2026, date: today }),
+        ]);
 
         if (cancelled) return;
 
+        const normalizedToday = (todayResponse.response ?? []).map((fixture) => normalizeFixture(fixture, t));
         const normalizedLive = (liveResponse.response ?? [])
           .filter((fixture) => LIVE_STATUSES.has(fixture.fixture?.status?.short ?? ""))
-          .map((f) => normalizeFixture(f, t));
+          .map((fixture) => normalizeFixture(fixture, t));
+        const activeFromToday = normalizedToday.filter((match) => LIVE_STATUSES.has(match.status));
 
-        const normalizedToday = (todayResponse.response ?? [])
-          .map((f) => normalizeFixture(f, t))
-          .sort((a, b) => (a.kickoff?.getTime() ?? Infinity) - (b.kickoff?.getTime() ?? Infinity));
-
-        const activeFromToday = normalizedToday.filter((fixture) => LIVE_STATUSES.has(fixture.status));
-        const mergedLive = normalizedLive.length > 0 ? normalizedLive : activeFromToday;
-        const visibleToday = normalizedToday.length > 0 ? normalizedToday : officialTodayMatches;
-
-        setLiveMatches(mergedLive);
-        setTodayMatches(visibleToday);
+        setLiveMatches(normalizedLive.length > 0 ? normalizedLive : activeFromToday);
+        setTodayMatches(mergeTodayMatches(localTodayMatches, normalizedToday));
         setLastUpdated(new Date());
       } catch {
         if (!cancelled) {
           setLiveMatches([]);
-          setTodayMatches(buildOfficialTodayMatches(timeZone, t));
+          setTodayMatches(buildLocalTodayMatches(timeZone, t));
           setLastUpdated(new Date());
         }
       } finally {
@@ -503,7 +396,6 @@ function LiveScreen({ isActive = false }) {
     };
   }, [isActive, timeZone, t]);
 
-  const emptyLiveState = liveMatches.length === 0;
   const visibleTodayMatches = useMemo(() => todayMatches, [todayMatches]);
 
   return (
@@ -521,11 +413,7 @@ function LiveScreen({ isActive = false }) {
 
           {lastUpdated ? (
             <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-              {new Intl.DateTimeFormat(language, {
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone,
-              }).format(lastUpdated)}
+              {new Intl.DateTimeFormat(language, { hour: "2-digit", minute: "2-digit", timeZone }).format(lastUpdated)}
             </p>
           ) : null}
         </div>
@@ -561,32 +449,24 @@ function LiveScreen({ isActive = false }) {
       </div>
 
       {activeSubTab === "live" ? (
-        emptyLiveState ? (
+        liveMatches.length > 0 ? (
           <div className="space-y-3">
-            <div className="panel p-5 text-sm text-slate-300">{t("live_empty")}</div>
-            {visibleTodayMatches.map((match) => (
-              UPCOMING_STATUSES.has(match.status) ? (
-                <UpcomingMatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
-              ) : (
-                <LiveMatchRow key={match.id} match={match} />
-              )
+            {liveMatches.map((match) => (
+              <MatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
             ))}
           </div>
         ) : (
           <div className="space-y-3">
-            {liveMatches.map((match) => (
-              <LiveMatchRow key={match.id} match={match} />
+            <div className="panel p-5 text-sm text-slate-300">{t("live_empty")}</div>
+            {visibleTodayMatches.map((match) => (
+              <MatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
             ))}
           </div>
         )
       ) : visibleTodayMatches.length > 0 ? (
         <div className="space-y-3">
           {visibleTodayMatches.map((match) => (
-            UPCOMING_STATUSES.has(match.status) ? (
-              <UpcomingMatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
-            ) : (
-              <LiveMatchRow key={match.id} match={match} />
-            )
+            <MatchRow key={match.id} match={match} language={language} timeZone={timeZone} />
           ))}
         </div>
       ) : (
